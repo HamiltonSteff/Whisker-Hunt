@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Whisker Hunt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e8e6f6;
+  --card:#f7f6fd;
+  --card-edge:#d3cfea;
+  --ink:#231a3b;
+  --muted:#6a6389;
+  --accent:#6247f5;
+  --accent-ink:#ffffff;
+  --heart:#ff4d6d;
+  --gridink:#231a3b;
+  --thin:rgba(35,26,59,.22);
+  --frame-ring:rgba(35,26,59,.10);
+  --shadow:0 10px 28px rgba(45,30,90,.16);
+  --scrim:rgba(24,16,44,.55);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14101f;
+    --card:#211a33;
+    --card-edge:#372d52;
+    --ink:#f2edff;
+    --muted:#a99ec4;
+    --accent:#9382ff;
+    --accent-ink:#140e25;
+    --heart:#ff6b86;
+    --gridink:#0d0917;
+    --thin:rgba(13,9,23,.35);
+    --frame-ring:rgba(255,255,255,.16);
+    --shadow:0 10px 28px rgba(0,0,0,.45);
+    --scrim:rgba(6,3,14,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14101f;
+  --card:#211a33;
+  --card-edge:#372d52;
+  --ink:#f2edff;
+  --muted:#a99ec4;
+  --accent:#9382ff;
+  --accent-ink:#140e25;
+  --heart:#ff6b86;
+  --gridink:#0d0917;
+  --thin:rgba(13,9,23,.35);
+  --frame-ring:rgba(255,255,255,.16);
+  --shadow:0 10px 28px rgba(0,0,0,.45);
+  --scrim:rgba(6,3,14,.7);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Fredoka',ui-rounded,'SF Pro Rounded','Hiragino Maru Gothic ProN',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+  overscroll-behavior:none;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+svg{display:block}
+
+.app{
+  max-width:480px;margin:0 auto;
+  min-height:100dvh;
+  padding:max(12px,env(safe-area-inset-top)) 14px max(20px,env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:12px;
+}
+
+/* header */
+.top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
+.icon-btn{
+  width:48px;height:48px;border-radius:16px;
+  background:var(--card);border:2px solid var(--card-edge);
+  display:grid;place-items:center;padding:0;
+}
+.icon-btn:active{transform:scale(.94)}
+.icon-btn svg{width:24px;height:24px}
+.title{text-align:center;line-height:1.05}
+.title h1{margin:0;font-size:30px;font-weight:700;letter-spacing:.2px}
+.title p{margin:3px 0 0;font-size:14px;color:var(--muted);font-weight:500}
+
+/* status */
+.status{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.lives{display:flex;gap:6px}
+.lives svg{width:30px;height:30px;overflow:visible}
+.lives .heart path{fill:var(--heart);stroke:var(--heart);stroke-width:1.6;stroke-linejoin:round;transition:fill .2s}
+.lives .heart.lost path{fill:none;stroke:var(--muted);opacity:.55}
+.lives .heart.lost{animation:heartpop .5s ease}
+@keyframes heartpop{0%{transform:scale(1)}30%{transform:scale(1.35) rotate(-8deg)}100%{transform:scale(1)}}
+.count{font-size:22px;font-weight:600}
+.count small{font-size:14px;color:var(--muted);font-weight:500;margin-right:6px}
+
+/* tracker */
+.tracker{
+  background:var(--card);border:2px solid var(--card-edge);border-radius:20px;
+  padding:12px;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,42px));gap:7px;justify-content:center;
+}
+.chip{
+  position:relative;width:100%;aspect-ratio:1/1;border-radius:11px;
+  background-color:var(--c);border:2.5px solid var(--gridink);
+  display:grid;place-items:center;
+  opacity:.5;transition:opacity .25s;
+}
+.chip .ico{display:block;width:76%;height:76%;opacity:.28}
+.chip .ico svg{width:100%;height:100%}
+.chip .tick{
+  position:absolute;right:-5px;bottom:-5px;width:44%;min-width:13px;aspect-ratio:1/1;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);border:2px solid var(--card);
+  display:none;place-items:center;
+}
+.chip .tick svg{width:62%;height:62%}
+.chip.found{opacity:1}
+.chip.found .ico{opacity:1}
+.chip.found .tick{display:grid}
+.chip.found.new{animation:chipjump .5s ease}
+@keyframes chipjump{0%{transform:translateY(0)}35%{transform:translateY(-8px) rotate(-6deg)}70%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+
+/* board */
+.board-wrap{
+  width:100%;aspect-ratio:1/1;overflow:auto;border-radius:18px;
+  box-shadow:0 0 0 1px var(--frame-ring),var(--shadow);
+  background:var(--gridink);
+  scrollbar-width:none;overscroll-behavior:contain;
+}
+.board-wrap::-webkit-scrollbar{display:none}
+.board{
+  width:calc(100% * var(--zoom,1));aspect-ratio:1/1;
+  display:grid;
+  grid-template-columns:repeat(var(--n),minmax(0,1fr));
+  grid-template-rows:repeat(var(--n),minmax(0,1fr));
+  border:3px solid var(--gridink);
+  border-radius:18px;overflow:hidden;
+  background:var(--gridink);
+}
+.cell{
+  position:relative;min-width:0;min-height:0;
+  background-color:var(--c);
+  display:grid;place-items:center;
+  border-top:1px solid var(--thin);
+  border-left:1px solid var(--thin);
+  cursor:pointer;
+}
+.cell.t0{border-top:0}
+.cell.l0{border-left:0}
+.cell.tk{border-top:var(--tk,3px) solid var(--gridink)}
+.cell.lk{border-left:var(--tk,3px) solid var(--gridink)}
+.cell:focus-visible{outline:3px solid #fff;outline-offset:-5px}
+@media (hover:hover){.cell:hover{filter:brightness(1.07)}}
+.cell:active{filter:brightness(1.12)}
+.cell[data-s="c"],.cell[data-s="r"],.cell[data-s="g"]{cursor:default}
+.board.locked .cell{cursor:default}
+.cell .ico{width:64%;height:64%;display:grid;place-items:center}
+.cell .ico svg{width:100%;height:100%;overflow:visible}
+.cell[data-s="x"] .ico{width:58%;height:58%}
+.cell[data-s="r"] .ico{width:66%;height:66%;animation:shake .4s ease}
+.cell[data-s="g"] .ico{opacity:.42}
+.ico.pop{animation:pop .42s cubic-bezier(.2,1.4,.4,1)}
+.ico.hop{animation:hop .55s ease both}
+@keyframes pop{0%{transform:scale(.2) rotate(-14deg);opacity:0}100%{transform:none;opacity:1}}
+@keyframes hop{0%,100%{transform:none}40%{transform:translateY(-22%) rotate(-6deg)}70%{transform:translateY(0) rotate(3deg)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-14%)}40%{transform:translateX(12%)}60%{transform:translateX(-8%)}80%{transform:translateX(5%)}}
+
+/* how to */
+.how{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.how div{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card);border:2px solid var(--card-edge);border-radius:16px;
+  padding:8px 10px;font-size:14px;font-weight:500;line-height:1.15;color:var(--muted);
+}
+.how b{color:var(--ink);font-weight:600;display:block}
+.how .mini{flex:none;width:34px;height:34px;border-radius:10px;background:#f4c44e;display:grid;place-items:center;border:2px solid var(--gridink)}
+.how .mini svg{width:70%;height:70%}
+
+/* footer */
+.foot{display:flex;gap:10px;margin-top:auto}
+.btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:48px;padding:0 14px;border-radius:16px;
+  background:var(--card);border:2px solid var(--card-edge);
+  font-size:16px;font-weight:600;
+}
+.btn:active{transform:scale(.97)}
+.btn svg{width:20px;height:20px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.switch{width:38px;height:22px;border-radius:99px;background:var(--card-edge);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--ink);transition:transform .2s,background .2s}
+.btn[aria-pressed="true"] .switch{background:var(--accent)}
+.btn[aria-pressed="true"] .switch::after{transform:translateX(16px);background:var(--accent-ink)}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:var(--scrim);display:none;place-items:center;padding:16px;z-index:10}
+.scrim.open{display:grid}
+.sheet{
+  width:100%;max-width:380px;max-height:86dvh;overflow:auto;
+  background:var(--card);border:2px solid var(--card-edge);border-radius:26px;
+  padding:22px 20px 20px;box-shadow:var(--shadow);text-align:center;
+  animation:sheetin .28s cubic-bezier(.2,1.2,.4,1);
+}
+@keyframes sheetin{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.sheet h2{margin:0 0 6px;font-size:32px;font-weight:700;line-height:1.05}
+.sheet p{margin:0 0 14px;color:var(--muted);font-size:17px;line-height:1.3}
+.sheet .big-cat{width:84px;height:84px;margin:0 auto 8px;background:var(--c,#f4c44e);border:3px solid var(--gridink);border-radius:24px;display:grid;place-items:center}
+.sheet .big-cat svg{width:70%;height:70%}
+.sheet .stack{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.sheet .row-hearts{display:flex;gap:6px;justify-content:center;margin:0 0 14px}
+.sheet .row-hearts svg{width:26px;height:26px}
+.sheet .row-hearts .heart path{fill:var(--heart);stroke:var(--heart);stroke-width:1.6;stroke-linejoin:round}
+.sheet .row-hearts .heart.lost path{fill:none;stroke:var(--muted);opacity:.55}
+.rules{list-style:none;margin:0 0 16px;padding:0;text-align:left;display:flex;flex-direction:column;gap:12px}
+.rules li{display:flex;gap:12px;align-items:center;font-size:17px;line-height:1.25}
+.rules .mini{flex:none;width:38px;height:38px;border-radius:11px;background:#78c47a;border:2.5px solid var(--gridink);display:grid;place-items:center}
+.rules .mini svg{width:72%;height:72%}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.lv{
+  position:relative;padding:8px 0 7px;border-radius:14px;background:var(--bg);
+  border:2px solid var(--card-edge);display:flex;flex-direction:column;align-items:center;gap:0;line-height:1.1;
+}
+.lv b{font-size:22px;font-weight:600}
+.lv small{font-size:12px;color:var(--muted);font-weight:500}
+.lv.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.lv.done{background:var(--card)}
+.lv .ok{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;border:2px solid var(--card)}
+.lv .ok svg{width:11px;height:11px}
+.lv .mh{display:flex;gap:2px;margin-top:3px;height:9px}
+.lv .mh svg{width:9px;height:9px}
+.lv .mh path{fill:var(--heart);stroke:none}
+.lv .mh .lost path{fill:var(--card-edge)}
+
+.board-frame{position:relative;width:100%}
+.edge{position:absolute;width:34px;height:34px;border-radius:50%;background:rgba(35,26,59,.8);color:#fff;border:2px solid rgba(255,255,255,.9);display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.35);z-index:2}
+.edge svg{width:18px;height:18px}
+.edge.show{opacity:1}
+.edge.up{top:8px;left:50%;margin-left:-17px}
+.edge.down{bottom:8px;left:50%;margin-left:-17px}
+.edge.left{left:8px;top:50%;margin-top:-17px}
+.edge.right{right:8px;top:50%;margin-top:-17px}
+.edge.show.up{animation:nudgeUp 1.6s ease-in-out infinite}
+.edge.show.down{animation:nudgeDown 1.6s ease-in-out infinite}
+.edge.show.left{animation:nudgeLeft 1.6s ease-in-out infinite}
+.edge.show.right{animation:nudgeRight 1.6s ease-in-out infinite}
+@keyframes nudgeUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes nudgeDown{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+@keyframes nudgeLeft{0%,100%{transform:translateX(0)}50%{transform:translateX(-4px)}}
+@keyframes nudgeRight{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+.p1{background-image:radial-gradient(circle at 50% 50%,rgba(35,26,59,.3) 0 15%,transparent 18%);background-size:50% 50%}
+.p2{background-image:linear-gradient(135deg,rgba(255,255,255,.4) 25%,transparent 25% 50%,rgba(255,255,255,.4) 50% 75%,transparent 75%);background-size:50% 50%}
+.btn[hidden]{display:none}
+.btn{white-space:nowrap}
+.foot .btn{font-size:15px;gap:6px;padding:0 10px}
+.foot .btn svg{width:18px;height:18px}
+.btn.zoom{flex:0 0 auto;min-width:78px}
+.icon-btn:disabled{opacity:.35;cursor:default}
+.pager{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
+.pager span{font-size:19px;font-weight:600}
+.pager .icon-btn{width:44px;height:44px;border-radius:14px}
+.spin{width:54px;height:54px;margin:0 auto 14px;border-radius:50%;border:5px solid var(--card-edge);border-top-color:var(--accent);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:360px){
+  .title h1{font-size:26px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="icon-btn" id="btnLevels" aria-label="Choose level">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
+    </button>
+    <div class="title"><h1 id="lvTitle">Level 1</h1><p id="lvSub">4 × 4 grid</p></div>
+    <button class="icon-btn" id="btnHelp" aria-label="How to play">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8"/><path d="M12 16.9v.1"/></svg>
+    </button>
+  </header>
+
+  <section class="status" aria-label="Lives and progress">
+    <div class="lives" id="lives" aria-live="polite"></div>
+    <div class="count" id="count" aria-live="polite"></div>
+  </section>
+
+  <section class="tracker" id="tracker" aria-label="Cat colours found"></section>
+
+  <div class="board-frame"><section class="board-wrap" id="boardWrap"><main class="board" id="board" role="grid" aria-label="Cat grid"></main></section><span class="edge up" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></span><span class="edge down" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span><span class="edge left" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span><span class="edge right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
+
+  <section class="how" aria-label="Controls">
+    <div><span class="mini" id="miniX"></span><span><b>Tap</b>mark empty</span></div>
+    <div><span class="mini" id="miniCat"></span><span><b>Double-tap</b>place cat</span></div>
+  </section>
+
+  <footer class="foot">
+    <button class="btn" id="btnRestart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>
+      <span id="restartLabel">Restart</span>
+    </button>
+    <button class="btn" id="btnAuto" aria-pressed="false">
+      <span>Auto ✕</span><span class="switch"></span>
+    </button>
+    <button class="btn zoom" id="btnZoom" hidden aria-label="Zoom the board">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M8 10.5h5M10.5 8v5"/></svg>
+      <span id="zoomLabel">1×</span>
+    </button>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<script>
+/* ---------- level data (n x n grid, region ids per cell, cat column per row) ---------- */
+const LEVELS = [{"n":4,"reg":"2233133313331100","sol":"1302"},{"n":5,"reg":"1334413344330403300033200","sol":"03142"},{"n":5,"reg":"4443304332043321112211111","sol":"13042"},{"n":5,"reg":"4000040100400002200033333","sol":"02413"},{"n":6,"reg":"330042355044330044300444000444000144","sol":"520413"},{"n":6,"reg":"052233022234022233002233002233222111","sol":"152403"},{"n":6,"reg":"200004000004000000055000333113333333","sol":"053142"},{"n":6,"reg":"552200552222522222422223433213333333","sol":"513042"},{"n":7,"reg":"0044655444466544443664444666266666621611111111111","sol":"1642503"},{"n":7,"reg":"3114444333444433344452333335223333526333332233300","sol":"2460315"},{"n":7,"reg":"5554444006644400444440000333222223322222332222231","sol":"0241536"},{"n":7,"reg":"1155666114566611444601246660222226022222202222233","sol":"3024615"},{"n":8,"reg":"6666602266661000666611116666111157411111571111117713331177733311","sol":"75362041"},{"n":8,"reg":"7466644474444444744444457444235511113355111133051111300011110000","sol":"30247516"},{"n":8,"reg":"7753331177553331777533337775333374755336044444360244444422444444","sol":"63527041"},{"n":8,"reg":"4422000346660003466600136660001166600017666007776665555766555557","sol":"27063514"},{"n":9,"reg":"612222222611222222111222222118824400111444400111344407113334400333333000333335500","sol":"041368275"},{"n":9,"reg":"777775522777555222555555222611111188661111188666111188046111188043311188444411188","sol":"475862031"},{"n":9,"reg":"055222222005222222000072866400078886444888886444448833444441133444441113444441113","sol":"130485726"},{"n":9,"reg":"555444000557444002157440002114400000111410000611110000666633000666333388666333333","sol":"028364175"}];
+
+/* ---------- pre-built big levels (16x16 to 20x20), used with random flips/rotations ---------- */
+const BANK = {"16":[{"n":16,"reg":"7777111aaaaaaaaa37a7a11aadddddaa37aaaaaaaaaaddda37a3aa2aaaaaaddd37733f244a4adddd37333fb4444adddd3333bbb4b54aaaad39933bbbb54aaaad33993b5555dadaad99993bb50ddddddd99933bb50dddd06d999339990000d06dee9339900000d06699933990000dd000999999909000000899cc999990000008","sol":"41b6a5839ce70df2"},{"n":16,"reg":"ee44422222888888444422228888888844422288888888884442222d888888884f44444d88888088ff11d4dd88880008f915dddd8d0808889915555ddd0008089911995d00008800999995500008880099999c55000000009999ccc55000300a999ccc665660330a99999c6666333007999ccc6663333b77999cc6666666bbb7","sol":"072b13964a5fd8ec"},{"n":16,"reg":"ffffffffff555555fbbbffffaf5555ddbbbbbff1af5a555dbbfffff1aaaaadddbffffff1aaaa33ddbbbb88f11aaa333d6bbbbb11117777776bebb000000077776beebbb00000777766eebe0007007777666ebe0027777774eeeeee0077777774eeeeeee00007777ceeeee0ee0000777c9eeee000000777cc9eeeeeee00077ccc","sol":"ae59c463718fb20d"},{"n":16,"reg":"77788888888833337c77778d88383344ccc7199dd8333334ccc7199cd833aaaacccc999cdd3333aacccccc9cc23333aac6cccccc02a3aaaac6c000c002aaaaaac6c000c0aaaaaaaac66600000aaababac6000060aaaabbba660000600abbbbaae66006600abbbbbaee6606600aaaabff666600600aabbbbf6556666000000bbb","sol":"a5f486b92d7c0e31"},{"n":16,"reg":"9999cccc11111111599cccccc1121211599c7cc111222211aa977ccc12222111a997cc2c12222221a977c22222222221a97cc72822222221a777c728228222110ee777288882211f00e777e88d82222f0eeeeee38d8d22ff0006eee38d8d2dff0066ee333d8ddd440066633dddddd44406666333bdbdddd400666663bbbddddd","sol":"30e17c5af6b28d49"},{"n":16,"reg":"337aaaccccccc999337aaaaaac5cccc9333a55aaa5555ce93a3a555555555ce93aaa355555555ccc333335555f65ccccf3bb335f5f6566ccffff3f5fff6566dc88ffffffff6661dc88ff8f88ff6111dc88888888f66601dc8444844ff46400dd8444444444444000888884444044400088844440000444008888844022000000","sol":"d27e0c364b9f51a8"},{"n":16,"reg":"bffeeef444477777bffffff444474447ffffffff44444747ffaafffffff44777ffafffffff44444711ffffffff4444471fffff44444544471fffff44455544d71111ff44554444ddccc1554455484dddc5c155555548ddd0c55555555528dd00cccc559552222d00ccccc99555200d00cc9cc95595200006c999999993330006","sol":"40d3517e8b2a6cf9"},{"n":16,"reg":"ffffbbbbccccccccffbbbbbbccccccccfbbbfb2bbbbbccccffffff2bbccccc1cff2ff22bbbbbcc1cff2222bb88bccc1c2222aaaaa811111c262222a88811119c26222aa88111119966662a3788de11196000033778de1919600600477ddd199966666047ddd999d960066077ddd99dd96000000777ddddd9555007777777dddd","sol":"3cae2971fb586d40"},{"n":16,"reg":"ccddddddd4477444cdddeedd44444444cdddeed44fff4a44cdededddffffaa48cceeeeeffffaaa4833e11e1ffaaa0a4433ee111faaa00aaa33eee1ffffaa0aaab3e1111f6ffa0aaab3e100006f0000aa23311110ff000aa92211100000000aa922111000000000a9222211100000009922211150000000092221555000000099","sol":"b7cf15d90824a36e"},{"n":16,"reg":"777999994442222c5779999442422a2c5b79ff992222aa225bb9ff992222a222bbf99f922222aa22bbfffffff222a222bbffafaff2aaa222bffbafa22222a332bbfbafa22222aa32bbbbaaa22a22aa38bbb00aaaaa22aa381b00aa00aaa22a881bb00aa06aaaaa8e11b00000666aee8e1bbbb0b006daee8ebbbbbbb006dddeee","sol":"f7206b5d394e81ca"},{"n":16,"reg":"777777777ddd22207777ee7e7ed2260077eeeeeeeee2166077ececcece11116077eccccccee1666077ecfffccc11166687efffffccc116c688efffffffccccc688ffffffcccc5cc68888ffccc5c556c68998fff555c556668499f5f56555566684955555665666668495555566566ba6349999556666bbaa3999555555566bbb","sol":"96b4fad582731ec0"},{"n":16,"reg":"eeeeeeee55722222effe0ee555771112ff6000eee57712220f6000ede51111220000d0ed55192222d00dddddd5592292ddddccccd5599992ddddcdcdd9592222d8ddddccc9999222d8888dc999992222ddd84dc889922222dd884d8899999222d88ddd8b89992222dd88dd8b889992228d88dd8888aa92228888888888833322","sol":"ae0261958f4c73bd"},{"n":16,"reg":"222222222222222822220222222228882202022222222288000002222228888b00000002a288688b0000e00aaa66666b0010eaaaaaaacc660010eaa4aaaddcc6001eeea4aaaaddc61111eee44eeddccc11111eee44eedccc511111eeeeefddcc5111711eeefffddd51517e1eeeeefd3d55599e1eefffff3d99999eeeeeffff33","sol":"6d2f8ac75b304e91"},{"n":16,"reg":"5555555555a99997555555555aa99977eeee5555cc444999eec55ccccccd4999ecc55cccbbcd449deecc5c1cbbcddd9dcccccc1bbb8ddd9d6c66c111b888dddd66661111bb888ddd666601111b888dff666601111bbb8dff6666611111bb8ddf3611666112b28ddf361111111222888f36661111222228ff666661122222888f","sol":"f9bd315c8a4206e7"},{"n":16,"reg":"77777eeeeeeeee6677777777777eedd67777777f7eeeeed6777777ffffeeeddd7777ffffeeeedddd77799f448e8e0ddd77799f888e8e00d0777799988e8880d077777998888800d0777a995888000000bbaa9a5888880000aaaaaa5888888000aaaaa55555338000aaaaaa3333333301aaaaaa23333c3111aaaaa223333cc111","sol":"e19d4738c602afb5"},{"n":16,"reg":"44777777777cccaa47777ee777777cca477777ee77cc7caa474e777ee7ecccca444e77eeeeecc66ab44eeeeeeccccc6ab4fffeeeeeeeec66444444eeee5e6c664444144e555e6c638444144ee552666384411449555222238811155955555522811555555555252281115155555522228101115155555dd28800111111155dd2","sol":"e8a2604cfb7195d3"},{"n":16,"reg":"8888882220000bbb8c8800000000bbbbcc8800000000bbbbcc8dd0000000bbbbcccd11000bb00bbbccc7100000bb0bbbccc71100a00b0bbbcc11100aa00bbbbb1111101aaabbbbbb1111111a44bbbbbe1111111133bebbbe1115111113eeeeee11155133333feeee11155333333f99ee11555333533ff99955555555533ff669","sol":"60a41357c8f9bd2e"},{"n":16,"reg":"999999111117777799ddd94111177777d99dd94441117773d9ddddddd0177333dddddddd00137333ddddddd005533333dd8d55d05533a333dd8d55d55aaaa333dd8dd5555aaa33a3cd88ddddaaaaaaa3cdc88d8dda22aaa2cccc8888d222aaa2cb88888862222222bbe888f6622222228ee88ff66662222288888ff666622222","sol":"46b9cad3e0f71825"},{"n":16,"reg":"488888888888887744488888777888874888448888777887444448888666777744404888883777c7400008bb883ee7cc20ff00bb3333cccc2ffffffbbfcccccc2fffffffffffccccffffffffffffcc9cffffffffffffc99cafffffffffffc9ccadffffffffccc9c5adffffff155999c5adddd1ff15599995aadd111111555555","sol":"e26a3b970c5df841"},{"n":16,"reg":"225511111deeeff955551ddd1deeeff95ddd1dddddefff66555dddd5deeef66655555555ddeeeee6555555dddeeeeee65055555dbbe8eee65005eeedeee8e7e65055eeeddee7e7e65055eeeede7777665005eceeee77777750055c000ee444775505550000e477770500000077e4777700000a0337744477000aaaaaa7777777","sol":"1f4ca68b0e5d2973"},{"n":16,"reg":"88888333364444aa800883aa3644a4aa5558833aaaaaa4aa5555533333aaa44a553353aaa3aaaaaa533353aaaaaa22225553333aaaaaaaa255333333aaaa222253355333aaa2222e5555573aa3a32f2e9555773333a32ff19557773b33a32f119977773bb3333f11997777cb333ffff1997ccccbbbbbbff19cccddcccbbfffff","sol":"913dac27f50e8b64"},{"n":16,"reg":"ccccc00612222222cccccbb611122222cccccb6666111222cccccb666611112fcccacb666666618fcaaac66444664188aaddcc6664444448addddc6d644444489d9dddddd4444888999dddddd4447788999993ddd45477e89993333d445447ee99333ddd4454477e9999dddd4554477799999d99445577779999999999955555","sol":"6b5af470d3e829c1"},{"n":16,"reg":"6eeeeeeee888000066ebbbbeee888000eeebbbbeeed833001bbb1beeedd883371bbb1bbedddd833711111bbbbbddd333111bbbbbbbbbddc311bbbbbdbbbbbdc3111bbbbdbdbbddcc5111bbbddddddffc511bbb4dfdffffcc441bbb4afff9fffc4414bb4a9999f9ff44444b499ffff9ff424444499f9999ff222999999999999f","sol":"c1b6fd5e930a7482"},{"n":16,"reg":"fffffccc88333333fccccccccc399393ffccc777773399934fcc777777e999934ff277777ee9979944f227777e7997994444277777797779444222777777799944422777779799a0dd422227799990a0dd444277700990a0dd444d7770000000dddddd77d0000055dd6dddd7d0000005666dbbdddd0000551166bbbbbbbb0055","sol":"97b1ac38e6d5f240"},{"n":16,"reg":"dddddddd00001111dddddddd00000111fddddddddd000011ffffddd44111111bffddd4444141111bfffdd49444444113ffffff9444444413fffff9944444c333ffff9944444cc333f889998864ccccc5f889888864ccccc5f78888ee666ac555f788888e66aae5552288888e6eeeee552288888eeeeeeee522888888eeeeeee5","sol":"c93f526db841ae70"},{"n":16,"reg":"fff6666666668aaa3fff6ddd6568888a3ff66dd665655aaa3ffd6dd55555555a33fd6d5555555511333ddd5555555511300dd4455541111133dddd444444111199dddbbb41141111999bdddb41111111999bbbbb44111111999bbbbbee11111199999bbbce11111199999bbbccc1111179999bccc2ccc11177799bbbc2cccc11","sol":"c37f1d25be684a09"},{"n":16,"reg":"8888eeeeaaaaa11188eeeeeaaa111111888eeeeeaaaa11f13883e7ebb77111f13333e77777111fff3337e777711111ff337777777cf111f4d377777cccfffff4d333377cccfffff4d3377772cccfffff533777722cccffff503372222cfccfff503372ffffffffff55566226ffffffff56666626ffffffff55666666fff99fff","sol":"36b79df04a81e25c"},{"n":16,"reg":"66883333333ffff4668333313fffff4466833331333ff44468831131313ff994683331111139999468333313311119943333a333111119443773aa331119994077333a1111111100777aaa111111e1107d77a1111111ee00dd7aaa1a111eee00ddcc5aaa1a1eeeeeddcc55aaaaaee2ebdcccc52aaa2222ebcccccc2222222222","sol":"39d6b082ec174fa5"},{"n":16,"reg":"fffffe111dddd555fffeee111d1dd999ffeeeeee111199997ffebbeee11119997eeebbb0111199997eeebbb00111299977eebbb00811299977eeb0b0088022227bbbb0b000000222bbbbb0bb0002222233bb00b000000222333bb00004222226c33bb00044244266c33bbb404422466a33bbbb44444446aa333333444aaaaaaa","sol":"d9c2831a4b7f06e5"},{"n":16,"reg":"fffff444ccccccccfff33444ccccccccffff3444c4ccccccffff333444ccccccdff33333444cccccdddd3333344ccccaddbd33333449cc5addb333339949c955d771333399999950dd71111199999000dd711199909900007d711199900990007771889999000000676668999900000067666888ee0000006666668eeeee2222","sol":"4b960f2e17ad538c"}],"17":[{"n":17,"reg":"99999999aaa11gg6699999aaaaga1gg666bb9aaaaagggggg666baaaaaaaaggggg666bbbaaaaaaaagg6655bbbbaaagggaggg7772bbbbaaggggggg7772bbgggggggg7ggg7724egggggggg7ggg7744eeggggg7g7g7g77448eeggg777777777e88eggfg7770777d7eeeeeeff7770777d7eeeeeeef770007777eeeeeeffff0007777eee33eeeefff00070eeeeecceffff00000","sol":"7be8g30a1d2f5c946"},{"n":17,"reg":"151111111ggg66666151414111g6ggg666111444111666666661444441ccccccc666144444111dcccccd6114e4110ddddddddd144e41a00ddd7d77744ee40a00d227d77744e440000d227dd774ee4ee0000277777799e4eeee0b277f777eeeee0000bbbbf373eeeeeee000e3b3373eeeeee00eee3b3373eeeeeeeeee3333773eeeeeeeeeee333333eeeeeeeeeee883333","sol":"1927g86a530dfc4eb"},{"n":17,"reg":"5555aacccaaa333334445aaccaa3aa31134445aaaaa33aa333d444aaaaaaa333333d488a8aaaaaa33333d48888aaaa3333333b4888aa88aa333ff3b48888880aa333f33b4488878088333fffb477777888ff33ffbb47778887ffff3fffb444778877ffffffbb9446777777fffbbbb944677ee7effffffb994676ee7effffgfg966666eeeegffgggg662266egggggggggg","sol":"6e3ga4c71fb8095d2"},{"n":17,"reg":"ee888888cccccc777eee88885666c77777e888888566cc7777788b88bbb66667777388bb8b66666677733888bbbb6666773733888b11b6666663733118b100226663333318881122226333333111112222263333331111111126666gg33111aaaa1222ggg33311aaaaa1a2ggggg331faaaaaaaggg333331ffaaaaa994333333fffaaa99994433333ddfaaa99994433333","sol":"d27f46c5g3ea819b0"},{"n":17,"reg":"eee00000006666666eee0eee0000000666ee99ee00006666668ee99ee00100616688eee9eee111111688d7eeeefe1egg88888d77ffffeee888844887ffffeefe88b84444777cffffefbb4444477cccccfffb4444447777c2ccfbb4422447777c2acbb24224447777c2a2b222244447c7cc2a22224444447ccc22a252444444477cc2222534444444777ccc22534444444","sol":"3e2cgaf5b706d1849"},{"n":17,"reg":"8558883bbbbbbbbbb88888333bbbbbbbab8eee83bbbbbbbbba08eeee3bbbbbbbbb001eeeeeebbbbbgb660111ee7eb77bbg66661c1177e7777ggg6g61cc1c7777g777g6gg4cc1c7977gggggggg4ccccc977gggggggg4c999c97777gggggg4ccc9997ggggggggg4c4cc997ggfgggggg444ccc97ggfffgggg49999997g9ffggfgg4944999999dffffgg444499222dddfffgg","sol":"17f0gb6e359d2c4a8"},{"n":17,"reg":"6665555ggff999999655555555f9988888656563355ff989988666665555999992886666550599229228266660500922222282a6a00000020002222a6a0000002200ddddaaa0e00000000000daeeee0000000000ddaeee00100bb07d0ddaaaee11111dd7d00daaaae1ee111ddddddaaaeeeee14dddddddeaeeeeee14dccddcdeaaeeee114ddcddcceeeeeeee44dcccccc","sol":"796b4fd130ac5e2g8"},{"n":17,"reg":"000aaa11a9aaaaaaa0600aaaaa9aaaaaaa06600000aaaagaaff066060222gggggaaf666660002gggggdaf666666002gggggd556b6bb6062g2ggggg5bbbbb666222ggg555e3bbbbbb2gggggggge33b3bbccgcgggggg33bb33bbccccg777g3333333bbcccccc773bbbbbbbbb4ccc77733333bbb444cc77c733bbbbbbbb4ccccc73333388bb44447c7733333384444777777","sol":"69b3ge2f80ca4d157"},{"n":17,"reg":"cccccccc222222277c1cddccd277777777c1cddddd22777a777c5c5dd4452779a777c5c55d54527797777c5555554522222777c5555555523332777c555ggg55egb3bb77c555gg55gegbbbb77ccc55ggggggbbb777c555ggg8g8g88bbb7c5gggg88g88887b77c55g8g88888887b7755gg888877877777855gggf8887777788800ffff8877878788800f66f88888888888","sol":"e1d4c7b962f8ga503"},{"n":17,"reg":"4488883666666661188888836666cc66618888883336cccb66188ddd83366cccbb6688dd883333cccbbbb88ddd333cccccbbbbddd2d33cccc9cccccd2d2dd37cc999cccc22222aa77999ccccc2272227799ccc99992277777799ccc99992227777799999999f222277770999999ff2222277000099f9ffe222277700090ffffeeee2g7000000ff55eeeegg0000000fff5","sol":"1ag59ec2637b8d0f4"},{"n":17,"reg":"ccce1111119999997ccee1111919999997cceeee199199999975c555519999999997555599999999999775555555496699777755555454449999977555554544444d777a5444444444440700a5555444f4f0007700225gg44fff00000002ggg4444f00fffff02gg444ffffffbf0003ggg4444ffffbfff03ggg444fffbbbfff03g8gg4gfffffbbb003388gggbbbbbb0000","sol":"275df94cg81be0a63"},{"n":17,"reg":"5533333322ggg6666555333332ggggggg65c5553gggggg888g85c55333ggg8gg88885cccc3gg8g8g4848855ccccgg8g8g444885cccccgg888g48888cccbcccgg88g448887cbbcbcg888g448887bbbbbcb8888848e87bbccccbb888888ee7bbbbbbbbbb98eeee7bbbbdbb99b989e9eddddddba99b99999e1dd1ddba99999999e1dd11dda99909099e1111ffddddd000000","sol":"9ga6c1e20f8b573d4"},{"n":17,"reg":"0000000ffffffffff00000000ffffff5ff00000f000fffff5eeb000ffffffffff5eebb00000ffff00000ebgg00g000000ee0eebbgggggg00000eeec1bg6666gg00000eec1gg63399000280e8cgg363399990280e88g3366398880888ee8g3363398888898e88gg333999998998884ddd33933398998444dddd3333999948884ddddd33a444948444ddd77aaa444444444","sol":"ae8f15g60bd492c73"},{"n":17,"reg":"g1115555555555555ggg1555555aaaaaa8g11111555555aaaa8g9116635535aaaa88g9111333335aea88aggg113aa355aeaaaagggggaaa55baeeeeeg000aa0a55baaeeeeg0000a0aaaaaeeeee0044000aa2aaeeedd4444aaaa2222ededd44c4aaaa2a22edddd4ccaaaaaaaeeeeedd44caaaaaaaeeedddd4ccaaaaaf77eeeddd4cccacaafc77eeedd444ccccccc7eeeedd","sol":"eg2415ac0693df8b7"},{"n":17,"reg":"44aaaaa331111111e44444aa331555111e4aaaaaa55551111ee44a7adaa5555551eed7777daaa55511111ddd7dd5aa55551111dddddd5a555551616dd555555555566666dddddddd55666c666ddddd5d555666c669ddddd5555556cc969d0dddd55g6666c999d00ddd05g6666c99900000000gg6g99989fff0000ffggg99889f2f0fffffgggbbb88f2ffffggggggggb88","sol":"74bg6359dae82f0c1"},{"n":17,"reg":"578888888bbbbbbb157788e88bbbbb4bb17788eee8899bb44b1778eee8899bb444b17c88ee8889b44d4b1cceeeeee89b44d1116666eeee89944ddd166e6eeeee99ggggdd66eeeeaaee99ggggd666eaaaeeef9ggggd666eaaeegfffggggd6eeeaaaegggffgggd6eaaaaee0ggfggggd6eaaaaa30gggggggg6aa22aa3022222ggg6aaa222222gg2gggg6aaa2222222gggggg","sol":"02f61ec35b9g847da"},{"n":17,"reg":"g33ccccccccccccccg8ccc8c5cc5ccccc188c88855555cc6cc1888888555ccc96666885858885ddc96cc6585855555dcccccc65555555ddddddccc65555555dddccccc66b55555dddddc0cc60b55dd5dddddc00000bb55d5555ddc02220b775dddddd2222000b77555ddd2222e000bb757dd7d2a44e0eeb7777777d2a4ee0eeb7b77774d2444eeeebbbff444444444eee","sol":"20g9c36f8e1bda574"},{"n":17,"reg":"4444404888888888c44444048966688ccc45444449966668cc255549999968888822555499999666882225a4499999666888223a3333999966688223337739999996662d3377737999996d6ddf333777999999ddddf337777999999dddd3337777799999dggg333377dd999dddg1gb3b3777d9ddd1gg11b3b77bbd99dd1gg11b3b7bbdddddd11111bbbbbbdddd11111ee","sol":"5e4a291f8307bd6cg"},{"n":17,"reg":"2211222699999999922222246699dd99992622664669ddd9ee92662266669dd99eec6666666dd9dd9eeec6667766dd9ddddddc6667776dddddddbcc6777777dddddddbbc666777ddddddddbbc6667777ddddddddb366777577dgdddddb386877557ggddddbb388888857ggggdddd38555885750gggg333f5555855505ggggggffff5555555ggggggfaa555555gggggggg","sol":"3a64d5fceg72b9081"},{"n":17,"reg":"99922ddddffffeeeeb9ddddddddfeeeee3b99dd77dddeegee33bb9dd777dd7eggeeebbbddd77777egeeeebbbbbbbb77eeggeeebb77777777e7gggeebbbb777777777ggeebbb7777777ggggge1bbbbbb77gggg6gge1baabgb7777g46gg66aaabgg77g7g466666accgggg7ggggg6666aaagggggg0g6gg666aaagg0ggg0g666666aaaaa000006656656aaaaa880000655555","sol":"4af25e73g8bd190c6"},{"n":17,"reg":"bbbbbb7999991111133bb7779999999991333bb7777999999993e33b774499g99090eee7b774444gg9000eee777444ccg99000aeaaaa4c4ccgg0000aaaa444ccccggggg0aaa444ccccggggg00aaa444ddcggggggg0aaaaaddccggcggg00aaaacdccccgcccf00aaaacdccccgcccf0faaaaccccccccc8fffaa2aaccccccc888ffa2222226ccc8888ffa255666688888888f","sol":"5g80ac1bf64e9d273"},{"n":17,"reg":"gggggggggggggg777gg4gggggggggg7777544gggggg77ggg77754cbbbgggg77777775cccbggggggggg777cccbbggggg0g7777711ccbbgggg007777711cccbegee00007771111ceeeee00077f711222ee88880033ff1112222280000000f222202220000000ff2292020000000006622920000aaa0000dd22922000a000000dd99922090aaaa0000d99999999aaaa00ddd","sol":"72053c19fd8bga46e"},{"n":17,"reg":"gg33333331bbbbb66ggg333311111bb666gfff2333131bbbbb6e2f2223113111bbb6e2fff23113111b106e2f22233331111106e222c2c3731000106e2ccccc3731cc0106e22222cccc11c0006ee22222cccccccc46e2222c222c2cc4c46eaaa2c22222cc44469ac22c2222cc446669accccc2ccc4444669acaaac222c4d4446aaaaccc2cccdd8456aaaaaccccccdd8455","sol":"a2g746b851930ecfd"},{"n":17,"reg":"666666688aa7777776266666bbaaaaa7776226666bbaaaa777762266699aaaaaa77762222669aaaae77ee62222269999aeeeee22ff2269999aaeaeef2f2222aa9aaaaaeefff22ccaaaa10eeeef22222caa111000eeff222fccaa110000eff22ffccaa100gg00ff2ff3300a110dg00ffffff3300000dgg0fff3ff300000000g0433333330000000gg44333330000005555","sol":"7286ec4a591bdf30g"},{"n":17,"reg":"6999999aaaaeeeeee699911aaaaa00eee86999911a0aa00e4886991111a00000e4886999999aaaa00444466692222aa0000044662222222220ccc4466222222222ccc4446622222222ccc777455525552222cc7224b5525555222277244b552225222222222455525552222222222555555222222222f255555222d2ff22fff5555g222dddffffff5555g22ddfff33fff","sol":"bg69731ead052f84c"},{"n":17,"reg":"c24444441111gggggc22222241gg11111g222002111gggg1ggg222200011gggg11gg2000000111gfgggg62000000133ffggg662220ee033fffgg6668220eeeeefeffgff68220eeeeefeeffffa8250eeeeeffeffffa8250eeeeeeeeeeeff82000eeee7fffffff880e00eee77777f79800ee0eeeeee7ff79800eeeebe7e777779800eeebb77e777799888888bdd77777779","sol":"5063d9ebg2a41c7f8"},{"n":17,"reg":"2g555a55bbbb111112gg55a55bb1111bb12gg55555bbb111bb12ggggg55bbb11bbb1226665555bbb1b111266765ffbb4bbb1d1267777fffb44441d12666677fff44444446677777f44444444466677777744444444666666777447444446666777777474e4449666677777777e4449666667777c774444966666707ccccc4449963687000cc44444333338888cc444444","sol":"5g641cf9e2bd0a738"},{"n":17,"reg":"9969333e2222444449969393e200222444996999332200004cc999999300000044cc999999900004444cc1119f9901115bbccc1199ff901155bbbbc1111f190015bbbbbc11111110115bbccbc111115111555bgccc111555155555bggcc111115555a85bgccc111111111a8bbgggc1177111aaaggbgccc17711aaaggggggccc777aaaaaagggccccgdd7777agggggggggg","sol":"7d26e3584bfac91g0"},{"n":17,"reg":"11111112222222ee41111111222222eee466661gg22222222ee611112g2222222ee911122222222222ee91112222d2222c2ee91111122dccc2c2c9911ddddddcc22ccc991111dccccccccc99911a1dddddccccc9f9a1a133dccccccccf9aaaa333005555cfff33aa33005505cccff3333337000055ffffbbbbbb705055ffff8bbb77775555555ff8bb7775555ffffff88","sol":"gd50a739e248b6c1f"},{"n":17,"reg":"eeeeeeee111111bb4ee999ee11111116b4eee999eeeee1166bbe9999ee82111116b6eee99e88221166666ee999992222166677egggg992ff2117777gggag9222f2217777gaaaaaa2ff2211777gggaaa0ff22211c553gaaaa00fff2cccc53ggaaa00ffffcffc53aaaaaa00ffccffc5aaaa00a00ffffffc5ad0000aa0000fccc5add0000000f0fffc5addddd0000ffffff5","sol":"eg196c5d7f02b38a4"}],"18":[{"n":18,"reg":"55522229999993333d52229999333933133d552222993339331300g22332933333331330g23322933333311110f23323933333311100f22333333333333110f222333333b3333311ff222233bbb33333417772bbb33bb113344172222bbbbb11333441777722abb111113441777772abaa11113441777776aaaaa11111117ee77666a6a111hhhh7ee77666a6achhhhhheee766e666achccchheeeeeeee688cccccch","sol":"2h704gda1cf385eb69"},{"n":18,"reg":"0000cccccc555ccccc0000ccchhcc5cccccc0hh0cchhccccc99cdd0heeechhhhcfcc999d0hhhcchhh9cf999d9d0hhhhhh999999ddddd00h4hh99911999dddd40h4hhh111119ddddd444477hh11199922dd47777hhh111999222d4476bhhh1111922ddd4bb6bbhhb11292222d44bbbbbbb112222222g4b111111111212222gbbb11111111111222bbb1111b11b8811112bbbbb1bbbbb8111311bbbbbbbbbaa8888333","sol":"a284b6dh5g1370ecf9"},{"n":18,"reg":"ccccccccccccccc555ccccccc2cc5c5cccc5ccccccc22c555c5c55cccccc222223555555b99hcc292233355155b9chc9992333331115b9cccc9223333111ffb9999992bd333331ffbbb99b99bdd3331111bb99bbb9b7d31111118bbbbbbbb7d311777188b8bbb7b7d377711188b8bb77b7dd77ee418888b77bb7dd7eee44aa8a7777b7777e4444aaaaaaa777eeeee004gaggaaaa7eeeeee606gggaaaaaaaaaae6666","sol":"4a8b36h95c07gd1f2e"},{"n":18,"reg":"766666699999gggbbb777770699999gggbgb700000009999gggggb77e00809989999g3gbeeeee80888999993g3e888e888f889ff93g3e8e888f8f899ff93g3e8e888f8ffffff93g3eee8ffffffffff3333e88888ddffffffff33ee8818ddddddffff32c88118dddfdffd4432c881111ddfffddd45588881111dfddd444458aa11ddddfdd444d4581111dhddffddddd45111h11hddddddd4445111hhhhhhdddd44445","sol":"3fc164a7e9h0gd2b58"},{"n":18,"reg":"bbbeeeee99996666684bbee99e99666366684bffee9999996396664bbfee9999199996164bbbe119991119911644bbee11111199911644bbbeeee1199h91164bbgg000e1191hh166444g00000111111111000g00a001aaa1a1aac0000aa0111aa1aaaacccc00aa1aaaa1a777c22caaaaaa55aaa777c22ccaada5555aaa77222caaad557577aa7722cc2aa255757aa7772ccc222257777aa777222227777777777777","sol":"hd2f1c8e03a5947b6g"},{"n":18,"reg":"00000000000444444400000000000h44414800000000dd0hd411480a00f0ffddddd41111aa0fffffdddddddd11aa0fffffddddd1d111a00ffffffd11111111aafff9cfffff111111aaaff9cf2ff11521113a9ff99221111522173a9f99992111222117aa9992922112222227aaa922922122222227eaa92222222222b277eea99222222222b227eegg92222222bbbb27666662662222222bbb66666666222222bbbb","sol":"chb59f862d04ag137e"},{"n":18,"reg":"ffffffccf777777777ff1ffffffff7722227ff1fffbbfbff77220011111fbbfbaaa6620511ffffbbbbba22220511fbfbbhbb2222220511fbbbhhbbh2hh225531bbbbhbbbh2h22555311bhhhbbhhhh55555g1bbhhhhhhhh555555gbbbbbhhhhhhh5hh55ggbbbhhhhhhhhhh555gbbbddhhhh8hh5h555gb449dhhhh8hh55555g4449dhdd88hhh5h55g44dddhhd8hhhhhh55gg44ddhhd8888hh555ggg4ddddddee88hhhh","sol":"6h8dbge02f51c4793a"},{"n":18,"reg":"gg1111ff9999998888gg1111999997778888g111199dd9997888881119199dd979778888119999dd99777788881111111d977744888822122dddd77788880022222dddddd883388322h2ddddddd8b333332hhhddddd3ddb3ee33222hddddd33333eeee2hhhd33d33333eeeee2hhddd333333deeeee22hdhddd33dddeeeeec2hhhhhdddddeeeeeec22hhhdddd6deeeeeec22555ddd6666eeeeec555aaaaa66eeeeeee","sol":"6139bdhfcg27e40a58"},{"n":18,"reg":"4ggg22bbbbbbbbbb8844g222222fbbbcb88c2ggggg2fffbbcccccc222g2222ffffffcc1c2d22222ffffffff11c2d222d2ffffffaf1ccdddddd2ffffffaf11cd9d99fffffff11111cd9999ffffffff11115d9999fffef11111115d9999fffeffff1111599999ff9eefff155159999ff999e55f1551599999999eeh5555555999999933hh5555555999999993h35555557666669333333555577600069933377777777","sol":"0fb35gd29c8e6a7h41"},{"n":18,"reg":"555fffffff77hhhhh855cffffff77hhhhh88cccffff6ff4hgg8h88c6c6fff6ff4hgg888gc666ff66f44hggg8ggc6666666f44h44g88g666dd666444444gg8g6666d6d664944gg88g6666ddd666944gg8gg6d66d6dd669ggggggg6d66d66d6992gggg0gdddddd666922gg0000dddddd6669333gg033dddd66666333gg3333bddd6d666633g33333bddddd33333333333ebd1d1333333333ee3e111111aa333eeeeeee","sol":"19f25g8a7dbec30h46"},{"n":18,"reg":"44444444444555555644a4addd4d4f505566a4a4adaddddf500555a4aaadaadfffff0500a4ahaaaaaaaf000000aaahhhaaaafff70070ahahaaacfafff70070ahhhhhccfff3f70070aahhhcccf993f770778aaahhc9f993f1777788aahcc9993331777788aahhcc9333777777eehahhhc9933gbbbb7ehhhhhhhh9g3gbbbbbhhhhhhhhhhg3gggggbhhhhhhhhhhg3gggbbbhhhhhhhhhggggggb2bhhhhhhhhgggggggb2b","sol":"bh35c286e7d1a04f9g"},{"n":18,"reg":"ffffff33333777ee55222f33333e37eeee552fffff33eeeee555552fffff33e333e5e55500f8f3333383eeeee50ff88833388ee555550f998333388e5555559f98883888ee5555559998888848e55555559998cccc48e555b5556688888ccce55bb55566888ccccbbb55bb556ccc8c66cccb5bbb5566cccc6cchhbbbb555g666c666chhbbbbb55ggg666d6chhhhbbb55ggggdddhhhaahaabb1ddddddhhaaaaaabbb1","sol":"d24b1c358g9f7a06eh"},{"n":18,"reg":"aagggggcc444444444agggggcccc44444449aagffffccc41444449aggggfcccc11144499acccgccc11111444996cccccc111114494496c11cc771114499999ccc1c1111111445989ddc1c1111111555988ddc1ccc11111155588ddc1111111hh118558d111111111h1188558d111d1111bh1h88888d11ddb111bhhh8e888ddddbb11bbhhhbe383dddbb111bhhbbbe333dddbb1bbbhbbbbee23dddbbbbbbbb0000222","sol":"9315206fc7ad4eh8gb"},{"n":18,"reg":"111dddd009aa9999991dddd1dd099999995911d111dg009999b95911d1d1dgg00999b9551dd1dddg0099bbb99511d1dd1gg09bb6bhhh11111110009b66bbhh11100110bb9b66bbbb11110000bbbbb6b66b11111080bebb6666bb111110806ee666bbb6111f7cc06e666bbb66221f7c00666666bbb6221fccc0666bbbbbb622133cc66b66b666b6222233c66bbbbb66b6232233c6666666666623333ccccc66666644","sol":"b7d8hf92c6a4035e1g"},{"n":18,"reg":"66666666666666660066766666666h6666006676f66f666hhhhh027976f6ff6666hhhh02797cfff66f166hh000777cccf66f1166h0h0c7cccff66f1hh6hhh0ccccccf66fhh666hh0ccffcffffffhhhhhh0ccffcffffbbbhhhh00ccffff8ffbbbhh5hh5ccf8ff8bfbgbbh5h55ccc8ff8bbbgaa55555ccc8ff8bbbaa555555c888888888aa55aa448888ddddd88a5aaa4488888ded883aaaaaa488888de3333333aaa4","sol":"72h1fb50d9eac3g468"},{"n":18,"reg":"888884hhhhd1111115888844hhhhd11111158888888hahh111111586666866aa11155555886a666aaaa115555588aa6666a775115155b88aaaa6a755511155bbbaaaa6a775555555baaaaaa6aa75555555aaaaaaa6aa75555555aaaaaaaaa77555ee55aaaa00aa0375e5eeffgaaa0aaa037eeeeeeegaaa0aa0033eeeeee9gg0a00003333eeeee9cg0000003333eee999cgggggg3333322e999gg33333333333eee99","sol":"a475c692f3eg8hb0d1"},{"n":18,"reg":"aa9a444ebbbbbbbbbha99a444eebbbbbbbbhaaaaa44eeeebbbdbddaaa44444ebbbbbdddd55aa4444eebbbbbbbd5aa44444444bbbbddd5a5444445444bbbbbd555554445544bbdddd5555544554444bdd885515554533344bd88871155545533bbbd8cc7165555553222bd8cc776535533302bb88cc7663333333022b88cc76636336fff222888c666366366ff2c222cc6666663666g2c22ccc666666666gg2cccccc","sol":"h17e3db4g20ca685f9"},{"n":18,"reg":"999999444444477777999hhhhhhhh44h777799hhhhhhhh44hh77779aahhhahhhhhhhh3379aahhaahhhhhhhhh379daahhaahhhhhhhh379daaaaaehhhhhff3379ddd88ae2hhccff333dd888822222cffff3cddd88822282ccfcfccd5d822228822cccccc85d888888222cccccc88888888822ccccccc66888888222ccc000c688888888cccccc0b1688888888ccccc11b16688888g88ccccc111888888ggccccc11111","sol":"d2af5973c814beg0h6"},{"n":18,"reg":"7703333333399999ff700333333333999ffh0003333333339h999h0033333333339hh9hh0033333333339hhhhh0003333g33339hhhhh0033gggggg53hhhhhh0000ggggg553hhhhhhb00gggbba1555hhhhhbbbgggbaa1155hhhhhbbbbbbba61111hhhhhbbbbb6ba6112111hhhe666b6666112211hhhe666666666222212hhe66666c662222222hhe666cccccc22224hhhed66ccccccc8444444eddddcccccc8884444","sol":"1g9fh7a382c50d6eb4"},{"n":18,"reg":"eebbbbbbbbbbbbbccceeeebebbbbbbbbcccfe9eeeee444bbbbcccfe9eee44444bbb44cffa9e444444bbbb44cffaaeee44444bbb44fffaaaee4414444444fffa00e111164344ggggga0000111643344ggg7a0000166643444gg57a0010166843334g355001111688443333333000018888444433333001110888834433333001100883833433333000000hh33333333330000hhhhd333333333022hhhhhd333333333","sol":"ce140fadh7g539b682"},{"n":18,"reg":"2222dddddddda33bb32222dddd1dddaa333322e22dd11ddaag33gg22e222e111d1aggggg2eeeeeee11111ggggg22e4ee411111gggggg25e444411141gggggg25e444441441gggggg25eeee441141gggggg55ee5ee41144ggggggc5e5544444444gggggc555777744440gggggc555777777770g0gggc55777697770000g0gc5776669979990gg0gcc776666999f00000gcc76666h9ffff0000gccc8866hhhhhffff0g","sol":"gdfac1h92405e68b73"},{"n":18,"reg":"822222200000ddd66682220000200dd666ff222222202200dd666f2e22ee2222200d666f2ee2e2222200ddffff2ee2eee22dddddddaa22e2eee42d4dddddda2eeeeee4444ddddd11222eeeebb443ddddd1eeeeebbbb443d995ddeebeebbbbb44499555ebbbebcb9949499955eebbbbcbb999494955ecccccccbbb9444955eceeccccbb99499995ecehccccbbb9999555ecehhcccb7b7999955eeeeeggcc777999555","sol":"0d72egc8hbf514a396"},{"n":18,"reg":"e1111abbbbb9999999ee111abbc999999999eee111bcccc9999999e5e811bc999949999955e81ccc99444969995ee8ccc222222969965e58888822200066665558822220000006665555882233333066665555883333333000665555585555hh3660665555555555h3336666555555h555h3hhh76655555hh55hhhhhh76655555hh555hhhhf7775hh5hh555hhhhhfd775hhhhhhh5hhffhfdg755hhhhhhhhhffffgg7","sol":"5268a4137d0eb9hfcg"},{"n":18,"reg":"444ffffff3333333dd44ffffffff3333d3dd44efhhff9f9333ddd14eefehhf99939999d14eeeeee9999399999944eeee99999999999984eee999999999999984eee9gg99cc9999998488eegg99cc999999888bbegcccc9999990888bgeggccc9c99990888bggggccccc990006866ggggcccccc7700666gggggggc2777000666655552222707007655552222227700007666555222227700077aa6665522222777777","sol":"8eh6b51d24cf397ag0"},{"n":18,"reg":"00000003333333333300b000333303355333bbbba0030000355533b44bac00030033353344444c0033333355534ccccc000353333533444c00000753535533ee4cc0000755555555e44cccc07757775555ee444c777777655555eeeeec77776765665heee11177166666655he9e99111116666855he9999119666888855he929991969688d8hhhe222291999988dddhh2222299999998gdhhh222999999ff99gddhh","sol":"6b403591gch8e72fda"},{"n":18,"reg":"ccccc3hhhhhhhh5555ccccc3339hhhh55555cccccccc9h9hhh5555cccccccc999hhh5555gcccccccc99999b555g1cccccccc9999bbbd111ccccccc9999bbdd11cccccc9999bbbbdd111ccccc9c999bbbddee111ccccc999bbbddeee110000c999bbdd2eeee70000000888222ee77700000088a82227770000ff0088a82227770fffff000aa22227770fffffaaaaaa2427f70ffffffaaaaaa46ffffffffffaaaaa666","sol":"5d930h2c8164b7egaf"},{"n":18,"reg":"55eeeeee2eeeeeeeffd5eeeee2222eeeeeefd5555eeeeeeefffeffd51eeeeeeeeeeeffffd51eeeeeeeeeeeee8gd51eeeeee7e8eee88gdd1ee11777e8eee888d111e177eee88eeee8d111117eeecc88eee8d1a1117eccc8888e88dda1117eecc838888677a11777ecc333388677a77777hhc3c33886777777hhhhccc36886b77777hh99c3336666bbb777h99943333666bbb777999444666666bb9999999004444444","sol":"g74dhf13b2c58e0a69"},{"n":18,"reg":"666gcccccccacccbbb66gggccccccacbbbbb66ggggcbbbccccbbbb6ggggccbbbbbbccbbbggggggcccccbbbbbbbdgg22gcecccbb9bbbbdg0gggeec8cbb9b9b91108geee88c7b9b99911088888887799bbb91000877778799bb9b900088888777799999900088888777777794905585888877777744905555888777777f44900055558877f7fff49000588588fffff44430555888888888f4fh3055555888888ffffhh","sol":"2b5c940713ea8f6hdg"},{"n":18,"reg":"2224444466666666cc22244444466cc66cccdd2444444065ccccccdd444d4000655aaaccddd4dd4450655accccdhd44d4455555acccbdhdddd444455aaaabbdhhhdd44455555aabbdhhhdddd444455aabbddhhhhhdd455559eebdddhhhhh55559999efddhhhhhh333ggg99efdd1h17h3333ggg99ee1d1h1773333ggg9999111h177333gg8888897111173333gggg888977777777333gggg888777777733333338888","sol":"8b27d4g95fch30a61e"},{"n":18,"reg":"eeeeeeeee7cccccddg333ee22e77cccc559g33eeee2ee77c5559993eee2227e7885599993e2ee2777788559999322e22227788588899322e2227788888888932222277788888888822222277788888888866122227777bb8000866112177077778088866111170008788008866h66070088880008866h660770800808888666660000880008888664466000000000088664aaaf0000000000866ffffff0000000088","sol":"fhb8dg60ec942a1357"}],"19":[{"n":19,"reg":"iiii2222555aaaaaaaaiiii222225555aaaaaaggi222225555aa66aa6iii222722535aaa6a66iii222722335a666a66ii1222772336666666611122227222666666661111222727276666cc61111212777777666cc61111112h777c6666cc61111222h7ccc6c66c66111112hh74cccc66c661111124474ccccccc06199f11b444ccccddc0099fff1bbeeccccddd00fffbfbbbccccccccdd0bfbbbbcbbbccccccc00bbbbbbcccccccccc000bbbbbbbbbbccccccc88","sol":"3c0eaf6b57d9h28g14i"},{"n":19,"reg":"aaa66666hh555g77777aca6666hh55ggggg777aca666hhhh555gggg7733366hhhhhhg5ggg77g33666hhhhgggggggg7gb366bhhhgggggggg77gbb66bbbhbbgggiiggggbb6bbbbbbegiiiggg8gbb6bfbbbbeggiig1188b66bfbeeeeggiiggg88b6bbfbbbeeiiii8888ibbbfffffeeieiiiiiiibbbbbffffeieiiiiiii4bbbffffeeeeiiiiiii44bbbfefeeee0iiiiii44b4bfeeeeee0ii9i9i444444eeeee99ii9i9i44444deeeeee9999999444dddeeeeeee992299","sol":"29140h7egi6d8ac3b5f"},{"n":19,"reg":"5511111iiiddddfffffh51114111iaddddf33fh5514444iiaddddf33fh51144aaaaaddd3333fh55444a99a99ddddd3ehh4444aa99999dd333e444444aaa999dd3333e444444444999d9999ee44444444999999999e6744484849999999996674g488888999996966644g4888888899966666ggg488b889999966666ggg444b889889866666gggg4bb888888866666gggbbbb8g8888666666gggggbbgg88666cc666gggggggg286622ccc66ggggg22222222200cc6","sol":"742i91gch50b6a3df8e"},{"n":19,"reg":"66666bbbbffd55555556666666bbbddd2225156666666bbdd22222211i66ii666bb622222211i6iii6i66662228g2g1iiiiiii66667728ggg1iaiiiii666677788gg1iaaiaiiia668888ggg1iiaaaaaaaa688ggggggiiiacacaaaa8ggggggg3aaacacaaa98ggg4ggg3aaacccca9999gg4gggccaaccccc99ggg444ggccccccccc99geg44444c0chhcccc999eee444400cchhhcc99ee4444440ccccch9999994944440ccccchhh9999994444cccccchhhh944444444","sol":"9ga85dbic203h4e17f6"},{"n":19,"reg":"77eeeee444444444ggg77e7ee44555444343fg77e7e445555544333ff7777eee5544444333ff777770e5444ff33ffff77bbb0e55555ff33fff0bbb000566666ffffff00b005556666fffffff000055556666fffffff0002555666666ffffff0002556666666ffffff002266666666hhf1faa22222666666hhhh1aaa222866666666hh11aaa8228666666666h1aaaa8888888666hhhhaaaad88ii89999hh9h9aaaad888i9999hh9999aadddiiii99999999999ccdd","sol":"g519d46c738hbe0i2af"},{"n":19,"reg":"aaabbbbbbbbb9999889aaaabhbhhhcccc99999aaaabhhhhhcccc9c991aaaabhhhhhhcccccd91aaaahh5hhcccccecd11aaaa5555hcccccecc11aaaaa5h5hhecceecc1caaaa55hhhheeeeec11caaaa55h5eheeecccccc000a5555eeeeccceeec0aaa4455eeccceceecc000044554eeecececcc7707444444eeeeceeeef77747444442eeeeeeeff77774444422eeeeeefffff77g44222e2222effii77ggg6322222222fffi77ggg6322222222fiii7gggg3332222222","sol":"h6eagi4f51d830c729b"},{"n":19,"reg":"2222288iiiiii333333277288333333iiii33577728888833333ii3557222228ff3f33ii33537777228ffff33333353e778888fffff3333333ee788888888ff3333336778818ff88f44333336677118ff88f433334366671188ffff43334436667111ff1f4443444gh667dd1111ff444444gh66dd111111fff4gggg666d11d11111ff4gggg66addddd1d11bfffbgg6aadadddddd1bbbfbgb66adaadaddd1cbbbbbb6aaddaaaddc1cbcbb0baaaaaa99ddcccccbb00","sol":"ai853e1db290f6g4ch7"},{"n":19,"reg":"777777fffffffffffff7777777ef2fffffffff7177ee7e22f2fffffff7117e77e2ff2fffffgg11heee7e22f2f28ff221hheeeee4222f2822221hhheee444b22222222hhhhhee4e4bb2222222hidheeeee4bb2222222hidh666444bbb22222ciiih666444b2222222ciii566644bbb22222cc5i55566640bb22bb2cc5i566644400bbbbbbcc555566646000bbccbbc5556656660600cccccc55555555606000cccca5533355666690ccccca6666666666690cccccc","sol":"d61heg382c907af5i4b"},{"n":19,"reg":"222266ddddddddddddd222ff6ddded999daaaa2g2f88ddeed999999aa2g2ff8dddeee99aa9aagg22ffeeeeee99aaaa1ggg2feeieiib99aaa11ggg22eiieiibb9aaa11ggg2iiieeiiib0a1111gcg2iiiiiiibb0a1331gciiiibibbbb11a1331ccciibbib1111111331ciiibbbbbbbbb131333ciiiiiib1b111133333cccibbbb1b111113333c4cii7bb1111hhh3333c4cii77bb7111h33333c444477777771773333cc44477757777773335cccc444755555555555","sol":"4a352cg8d07f91ehbi6"},{"n":19,"reg":"11111hbbbbbbbbbdddg19111hhbbgbgbgddggg99811hhhbgggbggdggg998888bbbggbbgddggg999988bbgggbbggddgg97988iibbbggbgggggg9798iibb6bgggg4g4449798i6666ggggg444449798i666ggggggg44449798ii66g2g05gg0004c7i88ii6g2g05000444caiiii6622200040444aaii22662e200440444aaaii2222ee00444444aaai22eeeee00444444a22ii2e2e2eee4444f4aa2ii22222eeee434f4aa22i2eeeeeee4434ffa222222eeee4444444f","sol":"h4753918ec60a2bgdfi"},{"n":19,"reg":"999911d1111111222229199111111g22222iii911111ggg1g22222iii99911gggggg2222222i119111gg00gg022iiii1111111g000g022222i1111311gg00g000222i3111331gg00000hhhhi311133ccggg000000ii31333accgg00000006i31333aacgg00000b66i3333aa8ccgc0000b06i33a3a88cccc00000066aaaaa888ccc00000006a55aee88c8880444404aaafe88888440044444aaaffff888440000444aaaffffff8440000444aaaaa77ff4444444444","sol":"639dbice0hfa2714g85"},{"n":19,"reg":"44442fffffffgggggii44242fffff11g11gggi44222ff2f11111ggggi44242222fff1g111ggg42244222ffggggggggg42444222fgggg555g5g444fff2ffggggg5gg5944hfffffffgggg5g5594hhfffffff55555g5594hhhh6ffff558555559hhhhh6bbbb588555559hhehh666bb588555555hhehhhe6b8888855555heeeheeee8888805500heeeeeeee7877700000eeeeaaee77777000000eaaaaaaa77737730000eedaaaaa33333330000eddaaaaacc333333300","sol":"hd3af0ig157c6e94b28"},{"n":19,"reg":"55555000000bbb229995555500000bbbbb299955555555000bbbbgg9975555ff500bbhbiigg9755450000000hiiiigg75544044i0i0iiiiggg75544004iiiiiiggggg7577444444iiiiiggg675774444444777iigg6757774e7444777igg66777774e7747777iigg6777774777777iiiiiii7317777777777777iii731177777777c7ciiii1117777777cccccciii171777accccciciiiii17777aaacciiiiiiiii117aaaaccccicciiiid111aaaaa88ccciiiidd","sol":"egb5c92f4h6d31a07i8"},{"n":19,"reg":"444444444ggggggggg64c44444g44ggggg66g6ccccccggghhgggg6666cc3ccggggggggg11166c33gggdgddddgggg166c333gdddddddddg11g6333ggdddddddgdgggg6003333dgggggggggeg277333ddggggggggeee277333ddddggggggiee277773d88dddiiiiieee7778888888ddaaaaaef7755888888d888aaaef775588888dd888aafef5555888ddd888aaafff588558dd888888aaaaf55888888888888aaaaf58888888998aa88afff5555bb888999aaaaaaa","sol":"719eh3c0fib2agd4685"},{"n":19,"reg":"0081111111fffffffee00888bbb11111ffffff0888bbbbb1b1fffffff00088000b1b11ff2fff0008000bbbbb1f22fff000000000bbbbf22fff00000bbbbbbb2f2ffff00000bbbbbbb222ff5f00000bbbbbb44444f55000gggggbbb4acccdd50000077gb444aiiccdd007007gggggaacccccc00770777ggaaaacaacc007707ggggggaacaccc007777ggggaaaacaccc7777777gg6aaaacacaa779h797gg6aaaaaaaaa7799996666aaaaaaaaa773339999aaaaaaaaaa","sol":"i81e70chbgdfa649352"},{"n":19,"reg":"bbbb666222992222222bbbb642222222222222bbb4442222222222222b44444444422222222cb44444422222222222cbbbbbb4442d222h22hcbb44b4444ddhhhhhhhc1444444ddddchhhhhhc1144444dddeccchhchc8144444ddeeaacccccc8844843ddeeaccccccc8888883dde0aaaacccc78ee8333de0eeaacccf78ee8383deeeeaaeeef788e8888eeeeeaeeeee788eeee888eeeeegeee7788eeee8eeeeggggee788eeeeeeeeeeegggii78885555eeeeeegiiii","sol":"b42d5e90gc63ai8f1h7"},{"n":19,"reg":"ggggggg888888111111gggggg9888888831111ggggg998g8g88833333gggggg98g8gg88883eeggggggg8gggg8888333gggggggggigggg88833000gggaggiggi88i883gggggaaggigiiiii333dgggggagiiiiiiiii33dgdggaagiiicc222333ddddgfaaiii2cc22333ddddgffaa2222223333ddd7fffaaa22333332377d77fff2aa2323222377777ff222a22222243777777f622aa22444447776666662a2244bbb4777766h62222bbbb444777777h6666655b4444","sol":"da5i392g0be841h7f6c"},{"n":19,"reg":"ccccc0000888bbbbbbbcccc000088bbbbbb222cccc000000000bbb2bbccc00000ffff0bbbbb5hhc0100fffffbbb5b55hhc11111fff3b555555ee11ff1fff33b555555eee1ffff3f33b533535eee1fff333333333335eeeeggg333ii3333555e7eggii3i3iii333544e7gggiiiiii33344544e7gggiiiiiii3334544g7dggiiiiii4444444aggdgggiiiiii494444agggggiiiiiiii944i4agggggiiiiiiiiiiiiiaggggiiiiiiiiiiiiiaagggggiiiiiii66iaaaa","sol":"48g7e069i31bf25dahc"},{"n":19,"reg":"e22g5555555ffffffccee2g555555hfhhhfcccee2ge53555hhhhfffcceeeee5335555hhhh1c1e777e5735335hhh3111e7eee57333355h33111e7ee757777333333111e777777774433333311e7744474443383833dde777744443388888ddd7747777444448888ddd774444444448888dddd7744774444888888ddd77777b444448ddddddd977b7bb44848ddd6ddd997bbbbb88886d666dd99799bbb688666660009999aaaa666666iiii0999999a666666666660","sol":"1b3h8d2i794fa50cge6"},{"n":19,"reg":"333666000000000557733660000055555555553366600f055005555553366660f0000a551155333626ff10aaa5511153332221111111111cc5443322111d1d111cc5544h222111ddd188c888h4hh2221dddd188c888hhhhhh21dd1118cc888hhhh2221ddd1888888822bh2211ddd1111888822b22221dd111i88889222222d1dddd1i88889222dd2ddddddei899892ggd22ddd99dei8898922gdddd9999diii99892ggdd99999999999989222ddd9999999999999","sol":"h847ai30f5b26g9ce1d"},{"n":19,"reg":"5bbb98888888gggggg45559999899988gggeg45999d999988800ggege5599dddd9g8g0ggeeee5599dddddgggggeeeeef5599ddddd33ggeaeeef699ddddd33aagaaeaef699dddid333aaaaaae669iiididd3333aaaee6696iidiiiii33aeeee6666iiiiiiii33aaaee666666iiiii33aaa3ee6666iiiiiii33a3333e666iiiiiiiii33333ee262iiiiii33333eeeee222i22iic3ccc333eee222222iiccc7711eehh222222ciic77771e11h2222ccccccccc711111","sol":"3i9c14d06ge5b728haf"},{"n":19,"reg":"6666cccbbeeeeee1111666cccccce0e0e1111166666cecce0e0ee1111666ccceeee0000011116666ccceee000011111556cccccee0000111115566cffcce0000001016566cffcfeee0220001666cccfcfeeef220111666g3fffffffff20001gggg33ddfddddf88000gdd33ddddddfff88800dddd3dddffffff800009dddddddddddf888800999dd4dddidd888888899ddd44ddiii8h888889999d44diii78h778889999d4dddd4777788889aaad44444444777778","sol":"8b4i61hec35g709dfa2"},{"n":19,"reg":"955566660gggggggggg95eeee6000g00gg00gi95eeee6600g0ggcc00i955e666660g0000000095eee66000000000d00ffeeee666660b0dddddfeeeff666000b00000dfffff6666606b0b0bbdffff66666606bbbbbbdf66fff6f66666bb7b7df666666f6f166bb7b72ffff6f6fff116b77772hhff6fffaf11bb7b772hhffffffaf1abb7b722hfffffffaa1abbbbbb2hhfff8fbbaaaab2b2b28hfff8f8bbbaab2222288fff8f834bbbb2222288888888344bbbbbb22","sol":"cie20g3d64fb1h9758a"},{"n":19,"reg":"66cccccc227777iiiiicccc22cc27777ii7iiicccc22cc222277i77ii99c22ccc2772777700ig9c2222c27722227hhhggc2222c2277222777hggc222222777777777hggcc221221f1117h77hgccc221111f111hhh7hggg552222111111hhhhgg55222222111111hhagg55522121111d11haagg55222121d1dd11hh4g555222111d1d11hhh455b5522211d1d11hh445bbb52121dd1d4444445bbb511118d1d44eee455b1511338d1dddeee4bbb1111188dddddddee","sol":"0d6g1b5ae2i4c8h3f79"},{"n":19,"reg":"666666gggggg7777fff4666gggddggg7777fff44466gggdgdgg777fff44466ggddgddd7fffff4444ggggdgddd777fff55e44gigddd777777ffbbeb4iiiiddd77d77aabbebbbidddddd7d0aaabbbbiiid9dddddd00aabbbbbbbd99ddddd00a0bbb9999999ddd0000a0bcbb9999999111190a0ccc9999999991119000ccccc99999999999900ccc9999999999990000cccc999999999900080cccc929999999h00088cccc222992229hhh088c222222222299hh0033","sol":"5c7e302g6a1b84fhd9i"},{"n":19,"reg":"bbbbgggggggg6666666bbbbggg5g55ggg66666b1bgggg5g55gdg66d6db1bbggg5g5ggd000d6d11bgg5g5g5gdddd0dddbbbbg555g55ccddddddbeebgg55g55cdd33dddeeabggg5g5cccc33dddeaabbii55554ccc3333aaiiiii444544ccccccaaiiii445554cc888ccaaii444444544888ccchaii4ff44455488cccchai444f4f4544888ccchaiffffff4444428cccha4444ff4444442888chah4h44444444222288hahhh44442222277998hhhhh44444444477788","sol":"c31db82ai69057eg4hf"},{"n":19,"reg":"3333388333333hhhhhh3313333333333h000003313333333393h0000033133333339999900003313333333999900000131333333399990000013143333333333000071314344443335000007111444e4ccee55555001114eeeeeeee55500001114e4444ee555000001114444i4ieeeegg00011aa444i4ibbbbbggg011a4442iiibbggggggg1aa4422iibbggggbgggaaa442f2iibbbbbbbgg662442f2iibbggggggg62222222iibbbbggggg66dd222222bbbbbbbbb","sol":"5daeg0ic8b793hf6142"},{"n":19,"reg":"bbbbb51111ahheeeeeeb999b511a1aaaeeeeeeb999911aa111aeeeeee99777111aaaaaaeeeee999777g1aaaaaaaee6e9797gggaaagga2aee68977777ggaagga2aee68999777gaagg222aa6687777g7gaagg2228a8687ggggggggggg228a8887ggggggggg22288a8887gggggggggggg8aa888000ggggg88gg88888cc0ggg00ggg88ggg8888c0gg00000gg8g88833330g000ii0gg88888883300000i000d3338338330ff00i000d0333388340000000000033333334","sol":"b50e72cg38adh4f691i"},{"n":19,"reg":"ccccc00000000000000ccc00000000000000003ccccci0000000000003cccciii000000000063ceccciii000000006633eccccii100000000637eeiiiii1111100a0637eeeiiiff1aa100a0637feeiiiiffaaaa0a0677fefiiiff4aaaaaaa677fefifff444aaaa66677ffffff4444aaa6668777fffhfh4aaaaaaa68dhhhffhfhaaaaaa5558dhdhhhhhhaaaaaa55ggddddhhhhhha5555555gddddhddddha525555ggdhhhhhdddha52599999dddddddbbba52222299","sol":"4b052918dagi6fh3ce7"},{"n":19,"reg":"44444441dddaaa00bb34i4111411ddd00000b34i114441111d0ddd0bbii14414441dddd0d00bi1141111117dcd0d0bbi1111117777dcb0000bi1111111117dcbbbbbbi1111177117bbb7777bi1171177177bbb7bb7bg11771711177b777bbbg11771717777777bbbbg1gg7777777fff776bbg11g5777777f77776bbgggg55555f7ff76766bgeggg55f5f7ff8666bbgeegg5ffffffh866bb6ggegeff9fffhh886666ggeeee29ffffh8hhh66eeeeee2hhhhhhhhh666","sol":"bi1a3hc5f08g49d27e6"}],"20":[{"n":20,"reg":"eeeeeicciiiiiiihhhhheeieeiiiii555iihhhhheeiiiiiiii5555iiihhheeeeiiii555555hihhhhjjeeii1ii5i55hhhhhhajjejgi1iiii555hhhahajjjjg111iii55hhhaaaa8jjjj666ii55hh77772a8j6jjj665555533372228j6666655555555772226666656555555555772266655565ddd555577722666665555d00555700026666655550055550022266666655500555000022f6666666500555000029f6666465550050000229f66644645550000002b9f66664444500002222bbff66666455000000022b","sol":"739e64g2d0cafh5jbi81"},{"n":20,"reg":"eee66666333333333355eeee6bb63636333333550eeeeb666666333333350eeeebb66633335333550e00eeb6b6663555555h000eebb6b6666511115h2000iib6b66g7551155h2200ibbbbb7g7511555h222iibbb77777511511h22222bdddd77711111hh82ddddd777777117711h88ddfff747777777711h8ddddff74477444477118ffdddf774744477771c8fffffff747477777aac8ffffff774447777aaaa88ffff77744444477a4aj88ffff474444944444aj8fff4444444a94a4aaa88ffff44444aaaaaaaaa","sol":"f94e385b2i6haj7gc0d1"},{"n":20,"reg":"ee444444444472233336eeee4hh4444472733336h5eehh444477777a3366h5ehh44c477777aaa336hhhhhhhc4747477a3336hhhchccc444447aaa333iihccccc4cc444agaa33iihhcccc44cc4aaggaa3iihhhccc44cc4aggggaaiihccc444cccaagggaaafffcjccccccccaaggggaffccjcjjccjgggggg0gaffc1jjjjccjg0gg000g8ffc111jjjjj00g0000g8ff11911jj0j000000bbbf1199919j0009000000bff11999990099900000bff111199d909990900bbf1119119d90090090bbb1119999999999999999b","sol":"e3i1gd094c25bja6f8h7"},{"n":20,"reg":"aaaaaaaaahhhhhhhhh88aagggggahhghhhh3h118aaaaaggaahggh333hh11aagggghhhhhgh333hh11jagaaghghhgg33hhh111jaaaaggghggg3hhh991fjjjaagggggg33339991fjjjjaaaggg332231191f77jj5aggg3332222111f7jj5555533442dd222117555544444442dddd2117555554444dddddd22ii75555444444ddddd22ii005544464dddd44ddiii005544464dddd4ddddii055e4444444444ddiiii05ee44e4e4d4ddddidii000eeeeeeed4diidddiicc0e0eeeebdddiididii000000eeebdiiiiiiiii","sol":"id4bhjf318c5a7eg6209"},{"n":20,"reg":"eeddd33dffbbbbbbbbbgeedddddddffbbbb88bbgedddddddffffbbb88bbbeddd99ddddffbb88888beeedd99ddffffb8888bbeddd9999dddffb88b8bbedd1919992fffb8bbbbbe1119199929cc4888888ee1991999999c4808088e1111119199988800008e191111119a888606608e199999999a868606605e1111966999668606655ee16166666666666665511166666666666555555111666666jjjj666655577166j6jjj666666666577jjjjjj666666556655h77jjjjj66j665556555h77jjjjjjjjj666555ii","sol":"5j862g9bd7caf4he130i"},{"n":20,"reg":"cccccjjjjjjggggggfffcccjjjjjjjjjgggfff22ccccjjjjjjgggegeffffccccjjjjjjjjeegeefffccjjjjjjjjaaegggeeffccccccj1jjeeeegggeffddccjjj11jeeeeeeeeffdcccjjjj1eeiiieeeehfdddccj1j1eeiiieieehfdddccc111eiiiieihhhhd1111111775iiiiiihhhd1141177755i55i5iihh66641177755i5555ii0h6664111155555555ii0h666441444555555iii0h6666444495555555i00h666664469999555550008b666666699555550000bb336666995599555000bbb33369999999955000","sol":"ajchb57f2g9eid684031"},{"n":20,"reg":"gggggggg11199999ffffgghhhh111119bbb9bbbfjjjjhhh111999bbbbbbfjjejhh1111191bbbbbbbjeejhhh111111bb4bb48jeejhh111c1bbb144448jejjh1111c1111144422eehhh1111cc111111222ehhhh11h1cc111111122ehhhh1hhccc111122222ehheh1hhccc11112a222eehehhhhccc1aa11a222eeeeeddcccc66aaaa252eeeeeddicccc6aaaaa52eeddddddccccccca5552edddd777cccccccccc52e77dd7777ccccccccc52e77777777ccccccc5c553000777777ccc5555555330007777777c5555555","sol":"g1aejf2hc63db759i804"},{"n":20,"reg":"aa6666iiiiicccccccccaaa6iiibiiieeecccccca666iiibbbiieeccccccaiiiiibbiiieeeccccccaaiiiibbieeeeecccccca9iibibbibeeccccccch59ibbbbbibeeeecccchh59bbbbbbbbebcccccch155bbbbbbbbbbbddchhh1b5bbbbbbbbbbddddh111bbbbbb7b7bbbbfffff184444bb777bbbbffffff8444bbbb777bbbbffffff444bb7b77bbbb0jff00f4444777777b770jff00fgg47777777777000000fgg44777777307000f0ffggg4777777300000fff0g444g777772200200000ggggg777772222220000","sol":"526f91i0dh7jge38ac4b"},{"n":20,"reg":"88888888ggggg7444iii8ggg88ggggggg74444448gggg8gjjgggf4499944ggggggggjggffff94444ggggggggjggff9999994gggggbggjjggf9ff9199gggggbgjjjgff9ff9199aaaaggjj5jgfffff9199ajjaggj55j0f555f9119aajaagjj5j0f555f9911aajjjgjj555555511111ajjjjjjjj555522221hhaaaajj55j555522221hha5555jj55555522221hhd55d555555255522111hdddd5335552552221hhhddd553555522552211hhc6dc533555222222111ec6dc533552255522121ecccc5355555552222222","sol":"hd0ge75ca4f8i936b1j2"},{"n":20,"reg":"bbffhhhhhhh999999gggbbbfh99h99h9999g99ggbhhfh99h999969ggggggbbhhh999999669ggggggbhhhbbb9996699666gggbhbbb999999666666gg0bbb3bii99i99666566g0bbb3biii9i66655566g8bbb3b2iiiiii66586888bbb3222ii55555586668bbb32i2i5555j58888683b332iiiii5jj88888883b3222222i5jjj88888833322222222jjjjjd88833ccc211112jjjddd888333cccc1222jjdd8888833eeecc11121jd88d8d8eeeaeec17111jd88ddddeeeaeccc7c11jdd88dddaaaae44ccc111ddddddd","sol":"2ai1djhebfc07g964835"},{"n":20,"reg":"jjjjjjjcc999999900003aajffjcccc9990000003jjjffjcc9990990d000jjjjfccc99990900dd00jjjffc55990000000dddjjjfcc999990dddd0dddjffff9900000000d0dddff99f990000900ddddddf99999999999900ddd11ff999990009000ddddddfffff9999000002dddddbbbffff99002222ddd668bffhffh9222222ddd468bfhhhhh92gg22dd44468bbbbbbb922gee4446668bgggggg922ge44466668bbggbggggggg44666668bbbgbggggg7i444646488bbbbbbbgg7i4444444888bbbbbbgg777744444","sol":"820369g4jhei7adf5c1b"},{"n":20,"reg":"g444444444444444aaaag944444444444a44444a994444444444aaa444aa944444444444aaaa4aaa99944444444aaaaaaa5a9994444444c666aaaa551914444444cc666aa55511148888ccc6666a222211d488d88876bbbaaa22d1d88dd88876bbbba222dddd8ddd877bb22bbb22fdd888d7770bb2bbbb22fdddddddd00bb2222b22ffddfddfd000bbb22222fffffffff0bbbb222222ffffffff00bbbbe22222fff0000000bb3beeee22ffffff0003333333eeeifffff000033hheeeeiiiffffff0003hhhhejjjji","sol":"061fid285h3794aecjbg"},{"n":20,"reg":"ffffiiiii4cc55555555fffffid4i4cc51518555fdddddd444cc51118555f7777ddddcc151118558ff777dd1cc1151118558f77779d1111151118888777719d111b11111118871711111b1b1b1b818887111a111b1bbb1b888887111a1bbbbb111bb888877aaa11bb8bbbbb888687aa111bbb88b8b88886877a1aabbbb888888800077aaabbbbbbbbbb8880077aaababebbbbb880000777aaaabeebbgggg00j027aa22eeeegbgggjjjj022aa2eeeeegggggggjjj22a22e2eeegg3ggggjjj22222222e3333ggggghh","sol":"4e7a60529gibh38df1cj"},{"n":20,"reg":"ccc5555533337711ffjjccccc555336377711fjjccee5533336677111fjjeccee5333366666611jjeceee5333333636111jjeceee5533336636112jjeeeee53333366311122jegggg3333333633222jjeeegg333333333322ijieaeeggg3333332222iiiaaaagggd3d333233222iaaaagddd3d333333h22iaaaaadd33d333333h22baaadaddddd333hhhhh2baaddddddd33ddddddh2baaaaaadd3333ddhhhh2ba000aadd33333ddhhh2ba809addddddddddhbbbb8809aaddaad44hdhhhbb8809aaaaa4444hhhhhhb","sol":"g7c24beifh6ajd851309"},{"n":20,"reg":"444444444hhjjj5555554444hhhhhhhhhjjjj55f444444444hhjjjjjj5ff44444hhhhhhhhhhjj55f44474hhhhhhhhjjjj55f47774111dhhhhj0055ii47d711d1dhhhhjj0500077d11ddddhhhhjh050087ddddddddhhhhhh000087dddd7ddhhhhhh0038887dddd7ddhhhhhhee3383777777dddhhhheee33837767777dhhddhhee3333676777ddddddeeee3333666277dgeeedee33333326227aaggeeeeeee3333222aaaggggegeeee33332222acggggggeeee39332b2cacccgggggg9e9993bb2cccccggggg9999999","sol":"ejb4ai7f8h0g2c36951d"},{"n":20,"reg":"88555aaaa9900000000085555a55aa90hh0000dd85885a555a90hhhh00de8888555ffa9000hhh0de88888558f990h0hh000084885588f900hhh0000044488888fff0hjh0111bgg4448fffffjhjh0011bgg4888fififjjjh1111bgg4448iiiiffjjh11bbbgg4444iffffjjjhjjjbbggiii4ififffjjjjjjjbggggiiiiiiiffiijijbbgggiiiggiiffiiiiijjbggiigggggiiiiijjjjbbggggg7iiiiiiiijjjjjjgggg7777iiijjij6jjjjgcgg777iiiijjjj6jjj6gccg7i7ii2ijjjj66666gccggiiii233jj666666","sol":"6iajd4gc3h2708e5f19b"},{"n":20,"reg":"222222222222bbb99999200022222222bbb9999922002222bbbbbggg9999320000222bbbbbg9999933j000020hbhbgg99i99000000000hhhhhg99ii9000005550000hhh9iii90550050000hhhhhhhhii55005500100hcchhhhhi500055501cccccchhhii5005550011111hhhhhii505551000111hh1hihie505551111111hh1hihie5555111111111114iiie5555571111411444iiii75775711ff444448i88i757777aaaa444448ii8i77777777aaa44448i88877777777aadddd688888777777777aaaad688888","sol":"c4d02g1ib93j7f586hae"},{"n":20,"reg":"66666666666667777iii699999966666667i77ii999999966f66667iiiii999666666fff677a0ii299999916gffg777a00i299999911gfggggg000i29999911gggggggg000009hh911111gggggg0g0009hhh11111g88ggggg0009hhhhhcc1gg8ggggggg0bhhhhhc11g88ggggggggbhhcccc1cg88gggggggdhhhhhc11ccc888gddgddhh33hccccc8888ddddddhh3hhccjee8888dddddd3333hhhjj888j88ddddd33jjhhhhjjjjjj4d4ddd333jhjhhjjjjjj4444dd3jjjjjjjjjjjjj44445djjjjjjjjjjjjj4444455","sol":"h79fcjg36a042e8b15id"},{"n":20,"reg":"6600000bbbbbbbbbbbbb6i666000000bbbbbb5bb6ii60000hhbbbb5555556666099hhhhhbbbjjj5c6600099999hhbhbbbjjc76600999999hhhbbbccc77600099999h9hhbbcdd77700099999999hbbccd77009999991199hbccdd77779919991198bbbcdd772222111991188aaaad72222g1111918888addd7222ggg11191118888dd222gggg11191188ddddd2g2ggg1111111188dddd2ggggggg111111183ddd2eggggg11111333333dd2eggggg1111111133ddd2eg4gggg1f1113333dddeeg44ggg1fff333333dd","sol":"6h2f0ebi835gjda7c194"},{"n":20,"reg":"bbbbbbbbbbbbbbb8888877777b66666666ee8888a7777bbbb666eeee88gha7777bbbb666eeeegggha77777700006eeeeeeee777700706666666eeeee74477000066666eeeeee744440000c66331eeee274444440ccc63311eee244444440ccc633111e2244c4ccccccccc3111111d4ccccccjc3c33111111d4cccccjjj3333311111d44ccccjjj3331111111dd4cccccjj333j111111dd4cciffj33jjjjj1111d5ccciijjj33jjjjjjj1d5555iiijjjjjjjjjj11d5dd555iijjjjjjjjj99ddddd555iiiijjjjj999","sol":"f5jg02ea7i39bd16c48h"},{"n":20,"reg":"448888888jjjjff5111144888jjjjj5j5555511144448jjj555j55511119444j88jjj55j51119999444jjjjjj55555111199444444jjjj555511119c454444jj6651111e119c4555555555555eeee1994444445555ee5ee5eee9444045555bee5e555ee944004444bbe55e555ehh44404bb4beee555e5eeh0g004b44beee5eeeeehh0g00dbbbbbee555eeeeh000ddbbbeeee5e5eeeeh0003dddbbbee5e55ee7h00333dbbbbbeeeeee77703303ddabbbeeeiii777033000daabbbiei7iii700002222abbbiii77777","sol":"d2bgej8a59if1403h7c6"},{"n":20,"reg":"g55555559999999jjiiig5gg55599299299jji9iggg5555922222299ji9iggb5b52929229999999igbbbb22999299922iiiigggbb2299922222ii22iggbbbb2229222222222iccbbb888222226iiii2icccb88822222266i6iiiccbbb8828722226i666ic00b88228772276666iic00088888772776hhiidc000888883777h66hhhdcc0088888337hhhhhdddcc0883333377h777dddecf00334337777717d1de0ff0044444771117d1de000044111117711711d100404441111771777111aa444444441111111111","sol":"73gcib5d28af9hj14e60"},{"n":20,"reg":"ccee444447777fffff668ceee44444777777fff68cceedd444777777fff6000dedd4447777777776000ddddd44733733766600ddddh44433333376660000hhhhh433333376660000hhhh4433363366669099hhhh433366666666999999hh4g33366666669h9hhhhhaaa3666666669hhhhhhhhaa3616661169hhhhhhhaahh616161119hhhhhhhhhh6611111119hhhhhiihh6666111111999hhhhiihiii666111199hhhhhiiiijiiii551199hhhhhhjijjiii22511999hhhhjjjjiiiii5511999hhhhjjjiiiiiibb11","sol":"1i04d538b92ae6jchf7g"},{"n":20,"reg":"00aaaaaaaaaaaag666660aaaaaaaiiaaaaggggg600a0aaaaiiiiaagagg6600a0aaaaaiiaaaaaggg90000a0aaiiaagggag9g901e0000aiiiaggggg99911eeeeaaiiiaggg2g9f851e1eeeai2i2gg222ff8511111eai2i2g222ffff1111314ii22222j222ff1331334i22jj2jjj22ff133333ii2jjjjj2222ffccc322222jj222222fffc33333232jjjj222222dc33cc3332jj2222727ddc33cc33j22j2222777ddccccjj3jb2j227777dddccjjjj3jbjj227h7hdhdcjjjjjjjjjj222hhhdhdcccjjjjjjjjjhhhhhhhh","sol":"fae1h2j0g637b5i48d9c"},{"n":20,"reg":"fffffffffeeeehhhhii2ffffffeeeeeeehhhiii2ffffeeeccceehhihi222ffffeeccccccchiiii22ffff99ccdddcdhhhiii2fffffffcddddddddddi2fffffffffd44ddddiii2fffffff44d44ddddddddffffffff4444d4dddd6d1fffffff8884444446661f1ff8ff888444464666111f88888874gg46666651a885588877gg46666051aaa558887gg66666605aaaa555887gggg666605aa555588878ggg660005a5558888888ggg3333j5a5888888888gggg3j3j555858588g8gggg33jjj555555558ggg3333bbbb","sol":"j6ce4793805a2dbifh1g"},{"n":20,"reg":"177770000000000000ee117777700000jjjj0eee1d7777780000jj000eii1d77888800j00j0eee5i1d778c8880j0jjjjee5i1d888ccc80jjjggje55idddd8c8888jjjggj5555dddd8ccc88jjgggjjj5hdddcccc88jjgggjjjh5hdddcccc8jjggggggghhhddccccccccgggggggghh4dcccfccfffggg9ggghh466fffffffgggg9gggh366ffaff99fffg99gggg366ffaaff9fffg999ggg96ffaaaaf9999999999g966fffaaa99a9a99aa9g96ffffaaaaba9aaaaa99966ffaa2aaba9a99999996fffff2aaaaaa9999999","sol":"41ifb8g3eh502jc7d96a"},{"n":20,"reg":"bbcccccc666ggg333331bccc6666666ggg3fff31ccccc666ggggjggff333ccd6666666jjjjgffff3cddd6666j6jjjggggff3cccd66j6jjjjjjgjgfffccdd6jjjjjjjjjjjggffcddd6jjjjjjj44jggggfcd66666djjj444jiffffddd6d66djjjjj4iiiff25d66ddddjjjj44i4ii225d66ddddj4jj44i42i22dd6ddaaa444j44442222dddddd7a444jj4444422dddddd774444444422228dddd777444444h4222288d8777444444hhhhh2h88d877777444eehhhhhh88888887704eeeeeehhh8888888990000eeeeehh","sol":"1jh8d2ibf40g5a6e3c97"},{"n":20,"reg":"bbbbbbb555555eeeee33bb7bbbbbbbbb55ee3333bb7b44b4bbb55eee9399b77b44444b55eeee9399b7bbbb444b555ee99990b7b44b444b4eeee9999047774bb44b4e999999gg477444444b46669a991144444444444666aa999144i44i444446666691114iiiii446666666699914iii4444688866c669c14if44444686666c699c1iifi4j66682288c69cc1iiii4jjii88228c699c1iidi44jiii8888ccccc1iddijjji8iiii8ccccc1ddiijiii888i888cc8c1iiiijiiiii888c8888cciiiiiiiiii8hhccccccc","sol":"7g6cjfi1eh942a5380db"},{"n":20,"reg":"hhhh339ddaa666666666hhhh3399dd6666676667h3hhh33dd66666777767h33h3334444646667777h3333333444446667447hhh33344444444444477eeii334444bf4ff41f7feeiii3344bbf4ff41f7feeeiii3bbbff4ff44f7febeibiibbbffffffffffebbbbbbbbbbbbffffcffeebbbbbb2bb2fffccccfeeeeeeeb2222ffcc5555ebbbeeebbbb2fff22555ebbbbbbb22b2f2225555eebbbbb22bb222255505eebbbb222bbbb2225505jbbbbb822b2222200005jjbbb8822222222220ggjjbb8882222222222ggg","sol":"a68bj24gc3d1e79fi05h"},{"n":20,"reg":"2bbbiiiiiiiiiiiccccc2bb77iiiici1cicccccc2biiiiggici1cicc8cc90bgiiiiggccccccc888900giiiggggcccaccc8890ggiggggggcaaac8888900ggggggggcccaccc8890gggggggagcacaa5889900gg33g3aaaaaa888888000gg333aaa8888dd88h000gg33aaaaaaffdd88h000g0333aaafffffdd8h00000333aaaaaafdddhh000333333aaaffffdddh0e033333aaafffdfdddd0e00343366aafddfdffdeee434446ffffddfdfdde4e444666fdddddfffdde4446666jjdddddddffde444666jjjjddddddddd","sol":"03b15ejf6hc4i8d972ga"}]};
+
+/* ---------- puzzle generator (used on-device for grids up to 15x15) ---------- */
+/* ===== Whisker Hunt puzzle generator (no dependencies) ===== */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffleArr(arr, rnd) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+const GEOM_CACHE = {};
+function getGeom(n) {
+  if (GEOM_CACHE[n]) return GEOM_CACHE[n];
+  const N = n * n;
+  const row = new Int16Array(N), col = new Int16Array(N), nb4 = [], rcadj = [];
+  for (let i = 0; i < N; i++) { row[i] = Math.floor(i / n); col[i] = i % n; }
+  for (let i = 0; i < N; i++) {
+    const r = row[i], c = col[i], a = [], b = [];
+    if (r > 0) a.push(i - n);
+    if (r < n - 1) a.push(i + n);
+    if (c > 0) a.push(i - 1);
+    if (c < n - 1) a.push(i + 1);
+    for (let j = 0; j < N; j++) {
+      if (j === i) continue;
+      if (row[j] === r || col[j] === c || (Math.abs(row[j] - r) <= 1 && Math.abs(col[j] - c) <= 1)) b.push(j);
+    }
+    nb4.push(a); rcadj.push(b);
+  }
+  return (GEOM_CACHE[n] = { N, row, col, nb4, rcadj });
+}
+
+/* random legal cat placement: cols[r] = column of the cat in row r */
+function randomPlacement(n, rnd) {
+  for (let tries = 0; tries < 50; tries++) {
+    const cols = new Array(n).fill(-1), used = new Array(n).fill(false);
+    let budget = 20000;
+    const rec = (r) => {
+      if (r === n) return true;
+      if (--budget < 0) return false;
+      const order = shuffleArr([...Array(n).keys()], rnd);
+      for (const c of order) {
+        if (used[c] || (r > 0 && Math.abs(cols[r - 1] - c) <= 1)) continue;
+        used[c] = true; cols[r] = c;
+        if (rec(r + 1)) return true;
+        used[c] = false; cols[r] = -1;
+      }
+      return false;
+    };
+    if (rec(0)) return cols;
+  }
+  return null;
+}
+
+/* grow n connected regions outward from the cat cells */
+function growRegions(n, cols, rnd, stunt) {
+  const { nb4 } = getGeom(n);
+  const N = n * n;
+  const reg = new Array(N).fill(-1), size = new Array(n).fill(0), cap = new Array(n).fill(Infinity);
+  const ids = shuffleArr([...Array(n).keys()], rnd);
+  for (let k = 0; k < (stunt || 0) && k < n; k++) cap[ids[k]] = 1 + Math.floor(rnd() * 3);
+  let list = [], deferred = [], left = N - n;
+  const push = (i) => {
+    for (const j of nb4[i]) if (reg[j] === -1) (size[reg[i]] < cap[reg[i]] ? list : deferred).push([j, reg[i]]);
+  };
+  for (let r = 0; r < n; r++) { const i = r * n + cols[r]; reg[i] = r; size[r]++; }
+  for (let r = 0; r < n; r++) push(r * n + cols[r]);
+  while (left > 0) {
+    let src = list.length ? list : deferred;
+    if (!src.length) { list = deferred; deferred = []; src = list; }
+    const k = Math.floor(rnd() * src.length);
+    const p = src[k]; src[k] = src[src.length - 1]; src.pop();
+    const [cell, g] = p;
+    if (reg[cell] !== -1) continue;
+    if (size[g] >= cap[g] && src === list) { deferred.push(p); continue; }
+    reg[cell] = g; size[g]++; left--;
+    push(cell);
+  }
+  return reg;
+}
+
+/* backtracking solver; calls onSol(cells) per solution, stops after `limit` */
+function solveCount(n, reg, limit, onSol, init) {
+  const { N, row, col, rcadj } = getGeom(n);
+  const U = 3 * n;
+  const unitCells = []; for (let u = 0; u < U; u++) unitCells.push([]);
+  const regCells = []; for (let g = 0; g < n; g++) regCells.push([]);
+  const cnt = new Int32Array(U), done = new Uint8Array(U), alive = new Uint8Array(N).fill(1);
+  for (let i = 0; i < N; i++) {
+    unitCells[row[i]].push(i); unitCells[n + col[i]].push(i); unitCells[2 * n + reg[i]].push(i);
+    regCells[reg[i]].push(i);
+    cnt[row[i]]++; cnt[n + col[i]]++; cnt[2 * n + reg[i]]++;
+  }
+  let placed = []; let found = 0; let nodes = 0; const budget = (init && init.budget) || 1e12; let hitBudget = false;
+  if (init && init.alive) {
+    alive.set(init.alive); cnt.fill(0);
+    for (let i = 0; i < N; i++) if (alive[i]) { cnt[row[i]]++; cnt[n + col[i]]++; cnt[2 * n + reg[i]]++; }
+    placed = init.placed.slice();
+    for (const c of placed) { done[row[c]] = done[n + col[c]] = done[2 * n + reg[c]] = 1; }
+  }
+  const kill = (i, trail) => {
+    if (!alive[i]) return;
+    alive[i] = 0; cnt[row[i]]--; cnt[n + col[i]]--; cnt[2 * n + reg[i]]--; trail.push(i);
+  };
+  const rec = () => {
+    if (++nodes > budget) { hitBudget = true; return true; }
+    if (placed.length === n) { found++; if (onSol) onSol(placed.slice()); return found >= limit; }
+    let best = -1, bc = 1e9;
+    for (let u = 0; u < U; u++) {
+      if (done[u]) continue;
+      if (cnt[u] < bc) { bc = cnt[u]; best = u; if (bc <= 1) break; }
+    }
+    if (bc === 0) return false;
+    const cells = unitCells[best];
+    for (let k = 0; k < cells.length; k++) {
+      const c = cells[k];
+      if (!alive[c]) continue;
+      const trail = [];
+      placed.push(c);
+      const u1 = row[c], u2 = n + col[c], u3 = 2 * n + reg[c];
+      done[u1] = done[u2] = done[u3] = 1;
+      kill(c, trail);
+      const ra = rcadj[c];
+      for (let x = 0; x < ra.length; x++) kill(ra[x], trail);
+      const rg = regCells[reg[c]];
+      for (let x = 0; x < rg.length; x++) kill(rg[x], trail);
+      const stop = rec();
+      for (let x = trail.length - 1; x >= 0; x--) {
+        const i = trail[x]; alive[i] = 1; cnt[row[i]]++; cnt[n + col[i]]++; cnt[2 * n + reg[i]]++;
+      }
+      done[u1] = done[u2] = done[u3] = 0;
+      placed.pop();
+      if (stop) return true;
+    }
+    return false;
+  };
+  rec();
+  solveCount.hitBudget = hitBudget;
+  return found;
+}
+
+function popcount(x) { x = x - ((x >>> 1) & 0x55555555); x = (x & 0x33333333) + ((x >>> 2) & 0x33333333); return (((x + (x >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24; }
+
+/* logic solver using singles, pigeonhole sets (up to K units) and one-step lookahead */
+function logicSolve(n, reg, K) {
+  K = K || 4;
+  const { N, row, col, rcadj } = getGeom(n);
+  const U = 3 * n;
+  const cand = new Uint8Array(N).fill(1);
+  const unitCells = []; for (let u = 0; u < U; u++) unitCells.push([]);
+  const typeIdx = [row, col, reg];
+  for (let i = 0; i < N; i++) { unitCells[row[i]].push(i); unitCells[n + col[i]].push(i); unitCells[2 * n + reg[i]].push(i); }
+  const regCells = []; for (let g = 0; g < n; g++) regCells.push(unitCells[2 * n + g]);
+  const killLists = [];
+  for (let i = 0; i < N; i++) killLists.push(rcadj[i].concat(regCells[reg[i]].filter((j) => j !== i && !(row[j] === row[i] || col[j] === col[i] || (Math.abs(row[j] - row[i]) <= 1 && Math.abs(col[j] - col[i]) <= 1)))));
+  const sat = new Uint8Array(U);
+  let ncats = 0;
+  const cats = [];
+  const place = (c) => {
+    cats.push(c); ncats++;
+    sat[row[c]] = sat[n + col[c]] = sat[2 * n + reg[c]] = 1;
+    const kl = killLists[c];
+    for (let x = 0; x < kl.length; x++) cand[kl[x]] = 0;
+  };
+  const tmp = new Int32Array(U), cntU = new Int32Array(U);
+  const recount = () => {
+    cntU.fill(0);
+    for (let i = 0; i < N; i++) if (cand[i]) { cntU[row[i]]++; cntU[n + col[i]]++; cntU[2 * n + reg[i]]++; }
+  };
+  let guard = 0;
+  while (ncats < n && guard++ < 4000) {
+    let changed = false;
+    // singles
+    recount();
+    for (let u = 0; u < U; u++) {
+      if (sat[u]) continue;
+      if (cntU[u] === 0) return { solved: false, bad: true, cats: cats.slice(), cand: cand.slice() };
+      if (cntU[u] === 1) {
+        let c = -1; for (const i of unitCells[u]) if (cand[i]) { c = i; break; }
+        if (!sat[row[c]] && !sat[n + col[c]] && !sat[2 * n + reg[c]]) { place(c); changed = true; recount(); }
+        else return { solved: false, bad: true, cats: cats.slice(), cand: cand.slice() };
+      }
+    }
+    if (changed) continue;
+    // pigeonhole: k units of type A confined to k units of type B
+    for (let A = 0; A < 3 && !changed; A++) {
+      for (let B = 0; B < 3 && !changed; B++) {
+        if (A === B) continue;
+        const touch = new Array(n).fill(0);
+        const units = [];
+        for (let a = 0; a < n; a++) {
+          if (sat[A * n + a]) continue;
+          let m = 0;
+          for (const i of unitCells[A * n + a]) if (cand[i]) m |= 1 << typeIdx[B][i];
+          touch[a] = m; units.push(a);
+        }
+        const kmax = Math.min(K, units.length - 1);
+        const chosen = [];
+        const rec = (start, mask) => {
+          if (changed) return;
+          const k = chosen.length;
+          if (k > 0) {
+            const t = popcount(mask);
+            if (t < k) { changed = 'bad'; return; }
+            if (t === k) {
+              let S = 0; for (const a of chosen) S |= 1 << a;
+              for (let i = 0; i < N; i++) {
+                if (cand[i] && (mask & (1 << typeIdx[B][i])) && !(S & (1 << typeIdx[A][i]))) { cand[i] = 0; changed = true; }
+              }
+              if (changed) return;
+            }
+          }
+          if (k >= kmax) return;
+          for (let x = start; x < units.length; x++) {
+            const nm = mask | touch[units[x]];
+            if (popcount(nm) > K) continue;
+            chosen.push(units[x]);
+            rec(x + 1, nm);
+            chosen.pop();
+            if (changed) return;
+          }
+        };
+        rec(0, 0);
+      }
+    }
+    if (changed === 'bad') return { solved: false, bad: true, cats: cats.slice(), cand: cand.slice() };
+    if (changed) continue;
+    // lookahead
+    recount();
+    for (let c = 0; c < N && !changed; c++) {
+      if (!cand[c]) continue;
+      const kl = killLists[c];
+      const touched = [];
+      for (let x = 0; x < kl.length; x++) {
+        const j = kl[x];
+        if (!cand[j]) continue;
+        const a = row[j], b = n + col[j], g = 2 * n + reg[j];
+        if (tmp[a]++ === 0) touched.push(a);
+        if (tmp[b]++ === 0) touched.push(b);
+        if (tmp[g]++ === 0) touched.push(g);
+      }
+      const m1 = row[c], m2 = n + col[c], m3 = 2 * n + reg[c];
+      for (const u of touched) {
+        if (u !== m1 && u !== m2 && u !== m3 && !sat[u] && cntU[u] - tmp[u] <= 0) { cand[c] = 0; changed = true; break; }
+      }
+      for (const u of touched) tmp[u] = 0;
+    }
+    if (!changed) break;
+  }
+  return { solved: ncats === n, cats: cats.slice(), cand: cand.slice(), bad: false };
+}
+
+function isConnectedWithout(n, reg, cell, g) {
+  const { nb4 } = getGeom(n);
+  let start = -1;
+  for (const j of nb4[cell]) if (reg[j] === g) { start = j; break; }
+  if (start < 0) return false;
+  let total = 0;
+  for (let i = 0; i < reg.length; i++) if (reg[i] === g) total++;
+  const seen = new Set([start]); const stack = [start];
+  while (stack.length) {
+    const x = stack.pop();
+    for (const j of nb4[x]) if (j !== cell && reg[j] === g && !seen.has(j)) { seen.add(j); stack.push(j); }
+  }
+  return seen.size === total - 1;
+}
+
+/* try to invalidate alternative solution `alt` by moving one of its cats into a neighbouring region */
+function repairMove(n, reg, s1set, alt, rnd, minSize) {
+  const { nb4 } = getGeom(n);
+  const size = new Array(n).fill(0); for (const g of reg) size[g]++;
+  const moves = [];
+  for (const c of alt) {
+    if (s1set.has(c) || size[reg[c]] <= minSize) continue;
+    for (const j of nb4[c]) if (reg[j] !== reg[c]) moves.push([c, reg[j]]);
+  }
+  shuffleArr(moves, rnd);
+  for (const [c, B] of moves) {
+    if (isConnectedWithout(n, reg, c, reg[c])) { reg[c] = B; return true; }
+  }
+  // fallback: random boundary nudge that keeps the intended cats legal
+  const cells = shuffleArr([...Array(n * n).keys()], rnd);
+  for (const c of cells.slice(0, 40)) {
+    if (s1set.has(c) || size[reg[c]] <= minSize) continue;
+    for (const j of nb4[c]) {
+      if (reg[j] !== reg[c] && isConnectedWithout(n, reg, c, reg[c])) { reg[c] = reg[j]; return true; }
+    }
+  }
+  return false;
+}
+
+
+/* generator: yields null between heavy steps so callers can time-slice; returns {n, reg, sol, logic} */
+function* genPuzzle(n, seed, opts) {
+  opts = opts || {};
+  const rnd = mulberry32(seed);
+  const maxSingles = opts.maxSingles === undefined ? 99 : opts.maxSingles;
+  const needLogic = opts.logic !== false;
+  const minSize = opts.minSize || 1;
+  const maxIter = opts.maxIter || 300;
+  const stats = { attempts: 0, iters: 0, nudges: 0, fail: { noprog: 0, budget: 0, nudge: 0, maxit: 0, singles: 0 } };
+  for (let attempt = 0; attempt < 100000; attempt++) {
+    stats.attempts++;
+    const cols = randomPlacement(n, rnd);
+    if (!cols) continue;
+    const reg = growRegions(n, cols, rnd, opts.stunt);
+    const s1 = cols.map((c, r) => r * n + c);
+    const s1set = new Set(s1);
+    let good = false, nudges = 0;
+    for (let it = 0; it < maxIter; it++) {
+      stats.iters++;
+      const res = logicSolve(n, reg, opts.K || 4);
+      yield null;
+      if (res.solved) { good = true; break; }
+      const sols = [];
+      solveCount(n, reg, opts.limit || 30, (x) => sols.push(x), { alive: res.cand, placed: res.cats, budget: opts.budget || 4000 });
+      const hit = solveCount.hitBudget;
+      yield null;
+      const alts = sols.filter((x) => x.some((c) => !s1set.has(c)));
+      if (alts.length) {
+        let progressed = false;
+        for (const alt of alts) if (repairMove(n, reg, s1set, alt, rnd, minSize)) progressed = true;
+        if (!progressed) break;
+        continue;
+      }
+      if (hit) break;
+      // unique, but logic gets stuck
+      if (!needLogic) { good = true; break; }
+      if (nudges++ > (opts.maxNudges || 30)) { stats.fail.nudge++; break; }
+      stats.nudges++;
+      if (!repairMove(n, reg, s1set, [], rnd, minSize)) break;
+    }
+    if (!good) { if (!stats.fail.__x) stats.fail.__x = 0; continue; }
+    const singles = (() => { const sz = new Array(n).fill(0); reg.forEach((g) => sz[g]++); return sz.filter((x) => x === 1).length; })();
+    if (singles > maxSingles) { stats.fail.singles++; continue; }
+    const perm = shuffleArr([...Array(n).keys()], rnd);
+    return { n, reg: reg.map((g) => perm[g]), sol: cols.slice(), attempts: attempt + 1, stats };
+  }
+  return null;
+}
+
+/* ===== endless level rules: size and seed are pure functions of the level number ===== */
+function sizeFor(idx) { return 5 + Math.floor(mulberry32(idx * 1013 + 7)() * 16); }
+function seedFor(idx, salt) { return (Math.imul(idx + 1, 2654435761) ^ 0x9e3779b9 ^ Math.imul(salt || 0, 40503)) >>> 0; }
+function optsFor(n) {
+  return { K: 3, limit: 60, budget: 4000, maxSingles: Math.max(1, Math.floor(n / 8)), minSize: n >= 8 ? 2 : 1, stunt: n < 8 ? 1 : 0 };
+}
+
+
+/* 20 colours picked so that any two are as different as possible to the eye (prefixes are spread out too) */
+const PALETTE = ['#f8847b','#47f1b9','#3099fc','#999b28','#f793ec','#5da0ab','#d6d3fd','#fdcdb8','#08eefa','#d38336',
+  '#c0859b','#b5e1c5','#9a9869','#bbe487','#fcd278','#42a958','#f16698','#49c1fe','#a18ad3','#18a98e'];
+const labCache = {};
+function labOf(hex) {
+  if (labCache[hex]) return labCache[hex];
+  const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const r = lin(parseInt(hex.slice(1, 3), 16)), g = lin(parseInt(hex.slice(3, 5), 16)), b = lin(parseInt(hex.slice(5, 7), 16));
+  const X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, Y = 0.2126 * r + 0.7152 * g + 0.0722 * b, Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+  const f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return (labCache[hex] = [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))]);
+}
+const colDist = (a, b) => { const x = labOf(a), y = labOf(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+const SIMILAR = 31;   // colours closer than this also get different textures
+/* colours for the territories: neighbours far apart, look-alikes given different textures */
+function assignColors(n, reg) {
+  const pool = PALETTE.slice(0, n);
+  const adj = Array.from({ length: n }, () => new Set());
+  for (let i = 0; i < n * n; i++) {
+    if (i % n < n - 1 && reg[i] !== reg[i + 1]) { adj[reg[i]].add(reg[i + 1]); adj[reg[i + 1]].add(reg[i]); }
+    if (i + n < n * n && reg[i] !== reg[i + n]) { adj[reg[i]].add(reg[i + n]); adj[reg[i + n]].add(reg[i]); }
+  }
+  const order = [...Array(n).keys()].sort((a, b) => adj[b].size - adj[a].size);
+  const colors = new Array(n), used = new Set();
+  for (const g of order) {
+    let best = -1, bs = -1;
+    for (let k = 0; k < pool.length; k++) {
+      if (used.has(k)) continue;
+      let sc = 1e9 - k;
+      for (const h of adj[g]) if (colors[h]) sc = Math.min(sc, colDist(pool[k], colors[h]));
+      if (sc > bs) { bs = sc; best = k; }
+    }
+    used.add(best); colors[g] = pool[best];
+  }
+  const sim = Array.from({ length: n }, () => []);
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) if (colDist(colors[a], colors[b]) < SIMILAR) { sim[a].push(b); sim[b].push(a); }
+  const pats = new Array(n).fill(-1);
+  for (const g of [...Array(n).keys()].sort((a, b) => sim[b].length - sim[a].length)) {
+    const taken = [0, 0, 0];
+    for (const h of sim[g]) if (pats[h] >= 0) taken[pats[h]]++;
+    let p = 0; for (let k = 1; k < 3; k++) if (taken[k] < taken[p]) p = k;
+    pats[g] = p;
+  }
+  return { colors, pats };
+}
+const MAX_LIVES = 3;
+const DOUBLE_TAP_MS = 380;
+
+const ICON = {
+  cat: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 24 L9.5 7 Q9.5 5.5 11 6.4 L21 13 Q24 12.4 27 13 L37 6.4 Q38.5 5.5 38.5 7 L39 24 Q41 32 36 38 Q31 43.5 24 43.5 Q17 43.5 12 38 Q7 32 9 24 Z" fill="#241a38"/><path d="M12.5 11 L18.2 15.2 L12.6 19.5Z M35.5 11 L29.8 15.2 L35.4 19.5Z" fill="#ff9fbd" opacity=".85"/><ellipse cx="17.5" cy="26" rx="2.9" ry="3.7" fill="#ffe27a"/><ellipse cx="30.5" cy="26" rx="2.9" ry="3.7" fill="#ffe27a"/><ellipse cx="17.5" cy="26" rx=".9" ry="2.7" fill="#241a38"/><ellipse cx="30.5" cy="26" rx=".9" ry="2.7" fill="#241a38"/><path d="M22.4 31.2 h3.2 l-1.6 2.1z" fill="#ff9fbd"/><path d="M24 33.3 v1.3 M24 34.6 q-2 2 -4 .6 M24 34.6 q2 2 4 .6" stroke="#ff9fbd" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M2.5 29.5 L12 30.8 M2.8 35.6 L12.2 33.6 M45.5 29.5 L36 30.8 M45.2 35.6 L35.8 33.6" stroke="#241a38" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>',
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="rgba(28,18,48,.6)" stroke-width="5.4" stroke-linecap="round" fill="none"/><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="#fff" stroke-width="3.2" stroke-linecap="round" fill="none"/></svg>',
+  red: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="#fff" stroke-width="6.6" stroke-linecap="round" fill="none"/><path d="M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="#d3182f" stroke-width="3.8" stroke-linecap="round" fill="none"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.6C12 20.6 3.2 15.4 3.2 9.2C3.2 6.4 5.3 4.4 7.9 4.4C9.7 4.4 11.2 5.4 12 6.8C12.8 5.4 14.3 4.4 16.1 4.4C18.7 4.4 20.8 6.4 20.8 9.2C20.8 15.4 12 20.6 12 20.6Z"/></svg>',
+  tick: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4l2.4 2.4 4.6-5"/></svg>'
+};
+
+/* ---------- saved progress (private to this browser) ---------- */
+const STORE_KEY = 'whisker-hunt-v1';
+let save = { done: {}, seenHelp: false, auto: false, level: 0 };
+try {
+  const raw = localStorage.getItem(STORE_KEY);
+  if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') save = Object.assign(save, p); }
+} catch (e) {}
+function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(save)); } catch (e) {} }
+
+/* ---------- game state ---------- */
+const $ = (s) => document.querySelector(s);
+const board = $('#board'), tracker = $('#tracker'), livesEl = $('#lives'), countEl = $('#count'), scrim = $('#scrim');
+
+let G = null;          // current level state
+let lastTap = { i: -1, t: 0, prev: 'e' };
+let winTimer = 0, restartTimer = 0, loadTimer = 0;
+const ZOOMS = [1, 1.8, 2.6];
+
+/* ---------- where levels come from ---------- */
+const BANK_MIN = 16;
+const PAGE = 20;
+const GEN_KEY = 'whisker-hunt-gen-v1';
+let genStore = { order: [], data: {} };
+try {
+  const raw = localStorage.getItem(GEN_KEY);
+  if (raw) { const p = JSON.parse(raw); if (p && Array.isArray(p.order) && p.data) genStore = p; }
+} catch (e) {}
+function persistGen() { try { localStorage.setItem(GEN_KEY, JSON.stringify(genStore)); } catch (e) {} }
+const b36 = (a) => a.map((x) => x.toString(36)).join('');
+const unb36 = (s) => [...s].map((ch) => parseInt(ch, 36));
+
+/* every territory must be one connected piece (edge to edge) */
+function contiguous(n, reg) {
+  const nb = getGeom(n).nb4;
+  for (let g = 0; g < n; g++) {
+    const start = reg.indexOf(g);
+    if (start < 0) return false;
+    let total = 0; for (let i = 0; i < reg.length; i++) if (reg[i] === g) total++;
+    const seen = new Set([start]), st = [start];
+    while (st.length) { const x = st.pop(); for (const y of nb[x]) if (reg[y] === g && !seen.has(y)) { seen.add(y); st.push(y); } }
+    if (seen.size !== total) return false;
+  }
+  return true;
+}
+
+function levelSize(idx) { return idx < LEVELS.length ? LEVELS[idx].n : sizeFor(idx); }
+
+/* a pre-built big puzzle, flipped/rotated and recoloured differently for each level number */
+function fromBank(idx, n) {
+  const list = BANK[n];
+  const rnd = mulberry32(seedFor(idx, 7));
+  const p = list[Math.floor(rnd() * list.length)];
+  const t = Math.floor(rnd() * 8);
+  const perm = shuffleArr([...Array(n).keys()], rnd);
+  const reg = unb36(p.reg), sol = unb36(p.sol);
+  const m = n - 1;
+  const map = (r, c) => [[r, c], [r, m - c], [m - r, c], [m - r, m - c], [c, r], [c, m - r], [m - c, r], [m - c, m - r]][t];
+  const reg2 = new Array(n * n), sol2 = new Array(n);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { const q = map(r, c); reg2[q[0] * n + q[1]] = perm[reg[r * n + c]]; }
+  sol.forEach((c, r) => { const q = map(r, c); sol2[q[0]] = q[1]; });
+  return { n, reg: b36(reg2), sol: b36(sol2) };
+}
+
+function getLevel(idx) {
+  if (idx < LEVELS.length) return LEVELS[idx];
+  if (genStore.data[idx]) return genStore.data[idx];
+  const n = sizeFor(idx);
+  if (n >= BANK_MIN && BANK[n] && BANK[n].length) return fromBank(idx, n);
+  return null;
+}
+
+/* on-device generation, run in small slices so the page stays responsive */
+const jobs = {};
+let wanted = null, ahead = null, pumpOn = false;
+function pump() { if (pumpOn) return; pumpOn = true; setTimeout(step, 0); }
+function step() {
+  const urgent = wanted !== null && !getLevel(wanted);
+  let idx = null;
+  if (urgent) idx = wanted; else if (ahead !== null && !getLevel(ahead)) idx = ahead;
+  if (idx === null) { pumpOn = false; return; }
+  let job = jobs[idx];
+  if (!job) { const n = sizeFor(idx); job = jobs[idx] = { salt: 0, gen: genPuzzle(n, seedFor(idx), optsFor(n)) }; }
+  const t0 = performance.now(), budget = urgent ? 40 : 8;
+  let finished = false, res = null;
+  while (performance.now() - t0 < budget) {
+    const r = job.gen.next();
+    if (r.done) { finished = true; res = r.value; break; }
+  }
+  if (finished) {
+    if (res && !contiguous(res.n, res.reg)) res = null;
+    if (!res) { const n = sizeFor(idx); job.salt++; job.gen = genPuzzle(n, seedFor(idx, job.salt), optsFor(n)); }
+    else {
+      delete jobs[idx];
+      genStore.data[idx] = { n: res.n, reg: b36(res.reg), sol: b36(res.sol) };
+      genStore.order.push(idx);
+      while (genStore.order.length > 60) delete genStore.data[genStore.order.shift()];
+      persistGen();
+      if (wanted === idx) { const w = wanted; wanted = null; startLevel(w, getLevel(w)); }
+    }
+  }
+  setTimeout(step, urgent ? 0 : 40);
+}
+
+function loadLevel(idx) {
+  idx = Math.max(0, idx);
+  const L = getLevel(idx);
+  clearTimeout(loadTimer);
+  if (L) { wanted = null; startLevel(idx, L); return; }
+  wanted = idx;
+  loadTimer = setTimeout(() => { if (wanted === idx) showLoading(idx); }, 250);
+  pump();
+}
+
+function showLoading(idx) {
+  const n = levelSize(idx);
+  openModal('<div class="spin"></div><h2>Hiding the cats</h2><p>Building a ' + n + ' × ' + n + ' grid for level ' + (idx + 1) + '.</p>' +
+    '<div class="stack"><button class="btn" data-act="cancelload">Cancel</button></div>');
+}
+
+function startLevel(idx, L) {
+  clearTimeout(winTimer); clearTimeout(loadTimer); clearTimeout(restartTimer);
+  restartTimer = 0; $('#restartLabel').textContent = 'Restart';
+  const n = L.n;
+  const reg = unb36(L.reg);
+  const cat = new Array(n).fill(0);            // cell index of each region's cat
+  const solCells = new Set();
+  unb36(L.sol).forEach((c, r) => { const i = r * n + c; solCells.add(i); cat[reg[i]] = i; });
+  const pal = assignColors(n, reg);
+  G = { idx, n, reg, cat, solCells, colors: pal.colors, pats: pal.pats, zoom: n >= 16 ? 1 : 0,
+        cells: new Array(n * n).fill('e'), lives: MAX_LIVES, found: new Set(), over: false, won: false };
+  lastTap = { i: -1, t: 0, prev: 'e' };
+  save.level = idx; persist();
+  $('#lvTitle').textContent = 'Level ' + (idx + 1);
+  $('#lvSub').textContent = n + ' × ' + n + ' grid';
+  $('#btnZoom').hidden = n < 11;
+  buildBoard(); renderTracker(); renderLives(); renderCount(); applyZoom(true);
+  board.classList.remove('locked');
+  closeModal();
+  ahead = idx + 1;
+  if (!getLevel(ahead)) pump();
+}
+
+function applyZoom(reset) {
+  const wrap = $('#boardWrap'), z = ZOOMS[G.zoom];
+  let cx = 0.5, cy = 0.5;
+  if (!reset && board.offsetWidth) {
+    cx = (wrap.scrollLeft + wrap.clientWidth / 2) / board.offsetWidth;
+    cy = (wrap.scrollTop + wrap.clientHeight / 2) / board.offsetHeight;
+  }
+  board.style.setProperty('--zoom', z);
+  $('#zoomLabel').textContent = z + '×';
+  wrap.scrollLeft = cx * board.offsetWidth - wrap.clientWidth / 2;
+  wrap.scrollTop = cy * board.offsetHeight - wrap.clientHeight / 2;
+  updateEdges();
+}
+
+/* arrows on the edges of the board show where more squares are hidden out of view */
+function updateEdges() {
+  const w = $('#boardWrap'), t = 4;
+  const more = {
+    left: w.scrollLeft > t,
+    right: w.scrollLeft + w.clientWidth < w.scrollWidth - t,
+    up: w.scrollTop > t,
+    down: w.scrollTop + w.clientHeight < w.scrollHeight - t
+  };
+  for (const k in more) $('.edge.' + k).classList.toggle('show', more[k]);
+}
+
+function buildBoard() {
+  const { n, reg } = G;
+  board.style.setProperty('--n', n);
+  board.style.setProperty('--tk', n > 12 ? '2px' : '3px');
+  board.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < n * n; i++) {
+    const r = Math.floor(i / n), c = i % n;
+    const d = document.createElement('div');
+    let cls = 'cell';
+    if (r === 0) cls += ' t0'; else if (reg[i] !== reg[i - n]) cls += ' tk';
+    if (c === 0) cls += ' l0'; else if (reg[i] !== reg[i - 1]) cls += ' lk';
+    d.className = cls + (G.pats[reg[i]] ? ' p' + G.pats[reg[i]] : '');
+    d.dataset.i = i; d.dataset.s = 'e';
+    d.style.setProperty('--c', G.colors[reg[i]]);
+    d.setAttribute('role', 'gridcell');
+    d.setAttribute('tabindex', '0');
+    d.setAttribute('aria-label', 'Row ' + (r + 1) + ', column ' + (c + 1));
+    frag.appendChild(d);
+  }
+  board.appendChild(frag);
+}
+
+function renderCell(i, anim) {
+  const el = board.children[i];
+  const s = G.cells[i];
+  el.dataset.s = s;
+  let h = '';
+  if (s === 'x') h = '<span class="ico">' + ICON.x + '</span>';
+  else if (s === 'r') h = '<span class="ico">' + ICON.red + '</span>';
+  else if (s === 'c') h = '<span class="ico' + (anim ? ' pop' : '') + '">' + ICON.cat + '</span>';
+  else if (s === 'g') h = '<span class="ico">' + ICON.cat + '</span>';
+  el.innerHTML = h;
+}
+
+function renderTracker(newRegion) {
+  tracker.innerHTML = '';
+  tracker.style.setProperty('--cols', G.n <= 8 ? G.n : Math.ceil(G.n / 2));
+  for (let g = 0; g < G.n; g++) {
+    const f = G.found.has(g);
+    const d = document.createElement('div');
+    d.className = 'chip' + (f ? ' found' : '') + (f && g === newRegion ? ' new' : '') + (G.pats[g] ? ' p' + G.pats[g] : '');
+    d.style.setProperty('--c', G.colors[g]);
+    d.setAttribute('aria-label', 'Colour ' + (g + 1) + (f ? ': cat found' : ': cat not found yet'));
+    d.innerHTML = '<span class="ico">' + ICON.cat + '</span><span class="tick">' + ICON.tick + '</span>';
+    tracker.appendChild(d);
+  }
+}
+
+function renderLives(justLost) {
+  livesEl.innerHTML = '';
+  livesEl.setAttribute('aria-label', G.lives + ' lives left');
+  for (let k = 0; k < MAX_LIVES; k++) {
+    const lost = k >= G.lives;
+    const d = document.createElement('div');
+    d.className = 'heart' + (lost ? ' lost' : '');
+    if (lost && k !== G.lives) d.style.animation = 'none';   // only animate the heart just lost
+    if (lost && !justLost) d.style.animation = 'none';
+    d.innerHTML = ICON.heart;
+    livesEl.appendChild(d);
+  }
+}
+function renderCount() {
+  countEl.innerHTML = '<small>Cats</small>' + G.found.size + ' / ' + G.n;
+}
+
+/* ---------- input ---------- */
+function onTap(i) {
+  if (G.over || G.won) return;
+  const s = G.cells[i];
+  if (s === 'c' || s === 'r') return;
+  const now = performance.now();
+  if (lastTap.i === i && now - lastTap.t < DOUBLE_TAP_MS) {
+    // second tap of a double-tap: undo the mark toggle from the first tap, then guess
+    G.cells[i] = lastTap.prev;
+    lastTap = { i: -1, t: 0, prev: 'e' };
+    renderCell(i);
+    guess(i);
+    return;
+  }
+  lastTap = { i, t: now, prev: s };
+  G.cells[i] = s === 'x' ? 'e' : 'x';
+  renderCell(i);
+}
+
+function guess(i) {
+  if (G.solCells.has(i)) {
+    G.cells[i] = 'c';
+    G.found.add(G.reg[i]);
+    if (save.auto) autoMark(i);
+    renderCell(i, true);
+    renderTracker(G.reg[i]);
+    renderCount();
+    if (G.found.size === G.n) win();
+  } else {
+    G.cells[i] = 'r';
+    G.lives--;
+    renderCell(i);
+    renderLives(true);
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    if (G.lives <= 0) lose();
+  }
+}
+
+function autoMark(c) {
+  const { n, reg } = G;
+  const r = Math.floor(c / n), cc = c % n;
+  for (let i = 0; i < n * n; i++) {
+    if (i === c || G.cells[i] !== 'e') continue;
+    const ri = Math.floor(i / n), ci = i % n;
+    if (ri === r || ci === cc || reg[i] === reg[c] || (Math.abs(ri - r) <= 1 && Math.abs(ci - cc) <= 1)) {
+      G.cells[i] = 'x'; renderCell(i);
+    }
+  }
+}
+
+board.addEventListener('click', (e) => {
+  const c = e.target.closest('.cell');
+  if (c) onTap(+c.dataset.i);
+});
+board.addEventListener('keydown', (e) => {
+  const c = e.target.closest('.cell');
+  if (!c || G.over || G.won) return;
+  const i = +c.dataset.i;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    const s = G.cells[i];
+    if (s === 'c' || s === 'r') return;
+    if (e.shiftKey) guess(i); else { G.cells[i] = s === 'x' ? 'e' : 'x'; renderCell(i); }
+  }
+});
+
+/* ---------- end states ---------- */
+function win() {
+  G.won = true;
+  board.classList.add('locked');
+  const best = save.done[G.idx] || 0;
+  save.done[G.idx] = Math.max(best, G.lives);
+  persist();
+  let k = 0;
+  [...G.cat].sort((a, b) => a - b).forEach((i) => {
+    const ico = board.children[i].querySelector('.ico');
+    if (ico) { ico.classList.remove('pop'); ico.style.animationDelay = (k++ * 70 + 250) + 'ms'; ico.classList.add('hop'); }
+  });
+  winTimer = setTimeout(showWin, 1200 + G.n * 60);
+}
+
+function lose() {
+  G.over = true;
+  board.classList.add('locked');
+  G.cat.forEach((i) => { if (G.cells[i] !== 'c') { G.cells[i] = 'g'; renderCell(i); } });
+  winTimer = setTimeout(showLose, 900);
+}
+
+function miniHearts(lives) {
+  let h = '<div class="row-hearts">';
+  for (let k = 0; k < MAX_LIVES; k++) h += '<span class="heart' + (k >= lives ? ' lost' : '') + '">' + ICON.heart + '</span>';
+  return h + '</div>';
+}
+
+function showWin() {
+  openModal(
+    '<div class="big-cat" style="--c:' + G.colors[0] + '">' + ICON.cat + '</div>' +
+    '<h2>Purr-fect!</h2>' +
+    '<p>You found all ' + G.n + ' cats.</p>' +
+    miniHearts(G.lives) +
+    '<div class="stack">' +
+    '<button class="btn primary" data-act="next">Next level</button>' +
+    '<button class="btn" data-act="levels">Choose level</button>' +
+    '<button class="btn" data-act="retry">Play again</button>' +
+    '</div>'
+  );
+}
+
+function showLose() {
+  openModal(
+    '<h2>Out of lives</h2>' +
+    '<p>The hidden cats are shown on the board. Try this level again.</p>' +
+    '<div class="stack">' +
+    '<button class="btn primary" data-act="retry">Try again</button>' +
+    '<button class="btn" data-act="peek">View board</button>' +
+    '<button class="btn" data-act="levels">Choose level</button>' +
+    '</div>'
+  );
+}
+
+function showHelp() {
+  openModal(
+    '<h2>How to play</h2><p>Find one hidden cat for every colour.</p>' +
+    '<ul class="rules">' +
+    '<li><span class="mini">' + ICON.cat + '</span><span>One cat in each colour territory.</span></li>' +
+    '<li><span class="mini"><svg viewBox="0 0 24 24" fill="none" stroke="#231a3b" stroke-width="2.6" stroke-linecap="round"><path d="M4 8h16M4 16h16M8 4v16M16 4v16" opacity=".6"/></svg></span><span>One cat in every row and every column.</span></li>' +
+    '<li><span class="mini"><svg viewBox="0 0 24 24" fill="none" stroke="#231a3b" stroke-width="2.6" stroke-linecap="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><span>Cats never touch, even diagonally.</span></li>' +
+    '<li><span class="mini">' + ICON.x + '</span><span>Tap a square to mark it empty. Tap again to clear it.</span></li>' +
+    '<li><span class="mini">' + ICON.cat + '</span><span>Double-tap to place a cat. A wrong guess shows a red cross and costs a life. You have 3.</span></li>' +
+    '</ul>' +
+    '<div class="stack"><button class="btn primary" data-act="close">Start hunting</button></div>'
+  );
+  save.seenHelp = true; persist();
+}
+
+function showLevels(page) {
+  const cur = G ? G.idx : 0;
+  if (typeof page !== 'number') page = Math.floor(cur / PAGE);
+  const first = page * PAGE;
+  const chev = (d) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
+  let h = '<h2>Levels</h2><div class="pager">' +
+    '<button class="icon-btn" data-act="page" data-page="' + (page - 1) + '"' + (page === 0 ? ' disabled' : '') + ' aria-label="Earlier levels">' + chev('M15 5l-7 7 7 7') + '</button>' +
+    '<span>' + (first + 1) + '–' + (first + PAGE) + '</span>' +
+    '<button class="icon-btn" data-act="page" data-page="' + (page + 1) + '" aria-label="Later levels">' + chev('M9 5l7 7-7 7') + '</button>' +
+    '</div><div class="levels">';
+  for (let i = first; i < first + PAGE; i++) {
+    const n = levelSize(i);
+    const done = Object.prototype.hasOwnProperty.call(save.done, i);
+    h += '<button class="lv' + (done ? ' done' : '') + (i === cur ? ' cur' : '') + '" data-act="pick" data-level="' + i + '" aria-label="Level ' + (i + 1) + ', ' + n + ' by ' + n + (done ? ', completed' : '') + '">' +
+      (done ? '<span class="ok">' + ICON.tick + '</span>' : '') +
+      '<b>' + (i + 1) + '</b><small>' + n + '×' + n + '</small>' +
+      '<span class="mh">' + (done ? [0, 1, 2].map((k) => '<span class="' + (k >= save.done[i] ? 'lost' : '') + '">' + ICON.heart + '</span>').join('') : '') + '</span>' +
+      '</button>';
+  }
+  h += '</div><div class="stack"><button class="btn" data-act="close">Close</button></div>';
+  openModal(h);
+}
+
+/* ---------- modal plumbing ---------- */
+function openModal(html) {
+  scrim.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' + html + '</div>';
+  scrim.classList.add('open');
+}
+function closeModal() { scrim.classList.remove('open'); scrim.innerHTML = ''; }
+
+scrim.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act]');
+  if (!a) { if (e.target === scrim && wanted === null) closeModal(); return; }
+  const act = a.dataset.act;
+  if (act === 'close' || act === 'peek') closeModal();
+  else if (act === 'next') loadLevel(G.idx + 1);
+  else if (act === 'retry') loadLevel(G.idx);
+  else if (act === 'levels') showLevels();
+  else if (act === 'page') showLevels(+a.dataset.page);
+  else if (act === 'pick') loadLevel(+a.dataset.level);
+  else if (act === 'cancelload') {
+    wanted = null; clearTimeout(loadTimer);
+    if (G) closeModal(); else startLevel(0, getLevel(0));
+  }
+});
+
+/* ---------- chrome buttons ---------- */
+$('#btnLevels').addEventListener('click', showLevels);
+$('#btnHelp').addEventListener('click', showHelp);
+$('#btnRestart').addEventListener('click', () => {
+  const label = $('#restartLabel');
+  const busy = G.found.size > 0 || G.lives < MAX_LIVES || G.cells.some((s) => s === 'x');
+  if (busy && !G.over && !G.won && !restartTimer) {
+    label.textContent = 'Confirm?';
+    restartTimer = setTimeout(() => { label.textContent = 'Restart'; restartTimer = 0; }, 2200);
+    return;
+  }
+  clearTimeout(restartTimer); restartTimer = 0; label.textContent = 'Restart';
+  loadLevel(G.idx);
+});
+$('#boardWrap').addEventListener('scroll', updateEdges, { passive: true });
+window.addEventListener('resize', updateEdges);
+$('#btnZoom').addEventListener('click', () => {
+  G.zoom = (G.zoom + 1) % ZOOMS.length;
+  applyZoom(false);
+});
+$('#btnAuto').addEventListener('click', () => {
+  save.auto = !save.auto; persist();
+  $('#btnAuto').setAttribute('aria-pressed', String(save.auto));
+});
+
+/* ---------- boot ---------- */
+for (const k of Object.keys(BANK)) BANK[k] = BANK[k].filter((p) => contiguous(+k, unb36(p.reg)));
+$('#miniX').innerHTML = ICON.x;
+$('#miniCat').innerHTML = ICON.cat;
+$('#btnAuto').setAttribute('aria-pressed', String(!!save.auto));
+{
+  const first = Math.max(0, save.level || 0);
+  if (getLevel(first)) startLevel(first, getLevel(first));
+  else { startLevel(0, getLevel(0)); loadLevel(first); }
+}
+if (!save.seenHelp) showHelp();
+</script>
+</body>
+</html>
