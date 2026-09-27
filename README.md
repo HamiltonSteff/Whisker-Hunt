@@ -1,5 +1,7 @@
 # 🐱 Whisker Hunt
 
+**[▶ Play the game](https://hamiltonsteff.github.io/Whisker-Hunt/)**
+
 A mobile-friendly, single-file HTML puzzle game in the style of *Meow Doku*. Find every hidden cat on the grid using logic alone — no guessing required.
 
 ![Whisker Hunt screenshot](screenshot.png)
